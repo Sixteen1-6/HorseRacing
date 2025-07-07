@@ -71,7 +71,6 @@ best_params = {
 }
 
 ```
-
 HorseRacingPredictor/
 ├── README.md                          # You are here! Complete setup guide
 ├── predict.py                         # Main prediction script
@@ -82,6 +81,5 @@ HorseRacingPredictor/
 ├── test_data.csv                      # Your race data goes here
 ├── requirements.txt                   # Python dependencies
 └── .gitignore                         # Git exclusions
-
 ```
 
