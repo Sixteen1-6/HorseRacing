@@ -70,6 +70,7 @@ best_params = {
     'n_jobs': -1
 }
 
+'''
 
 HorseRacingPredictor/
 ├── README.md                          # You are here! Complete setup guide
@@ -81,4 +82,6 @@ HorseRacingPredictor/
 ├── test_data.csv                      # Your race data goes here
 ├── requirements.txt                   # Python dependencies
 └── .gitignore                         # Git exclusions
+
+'''
 
