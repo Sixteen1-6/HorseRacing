@@ -230,17 +230,26 @@ class ChartPDFParser:
         r"About|And|A|One\s+And)[\w\s-]*(?:Furlong|Mile|Yard)s?)",
         re.IGNORECASE,
     )
-    SURFACE_PATTERN = re.compile(r"\b(Dirt|Turf|Synthetic|All Weather)\b", re.IGNORECASE)
-    CONDITION_PATTERN = re.compile(
-        r"\b(Fast|Good|Muddy|Sloppy|Firm|Yielding|Soft|Heavy|Wet Fast|Slow)\b",
+    # Also match no-space PDF format: "FourAndOneHalfFurlongsOnTheDirt"
+    DISTANCE_PATTERN_NOSPACE = re.compile(
+        r"Distance:([\w]+(?:Furlong|Mile|Yard)s?)",
         re.IGNORECASE,
     )
-    PURSE_PATTERN = re.compile(r"\$[\d,]+")
-    FRACTIONAL_PATTERN = re.compile(r":?(\d{1,2}[:\.]\d{2}(?:\.\d{1,2})?)")
+    SURFACE_PATTERN = re.compile(r"\b(Dirt|Turf|Synthetic|All Weather)\b", re.IGNORECASE)
+    # Also match no-space: "OnTheDirt", "OnTheTurf"
+    SURFACE_PATTERN_NOSPACE = re.compile(r"OnThe(Dirt|Turf)", re.IGNORECASE)
+    CONDITION_PATTERN = re.compile(
+        r"(?:Track:|Track\s*Condition:)\s*(Fast|Good|Muddy|Sloppy|Firm|Yielding|Soft|Heavy|Wet\s*Fast|Slow)",
+        re.IGNORECASE,
+    )
+    PURSE_PATTERN = re.compile(r"Purse:\$?([\d,]+)")
+    FRACTIONAL_PATTERN = re.compile(r"(?:FractionalTimes:|Fractional\s*Times:)\s*([\d\.\s:]+)")
+    FINAL_TIME_PATTERN = re.compile(r"(?:FinalTime:|Final\s*Time:)\s*([\d\.:]+)")
     RACE_TYPE_PATTERN = re.compile(
         r"\b(Maiden Special Weight|Maiden Claiming|Claiming|Allowance Optional Claiming|"
         r"Allowance|Stakes|Starter Allowance|Starter Optional Claiming|Optional Claiming|"
-        r"Handicap|Starter)\b",
+        r"Handicap|Starter|MAIDEN\s*SPECIAL\s*WEIGHT|MAIDEN\s*CLAIMING|CLAIMING|"
+        r"ALLOWANCE|STAKES|HANDICAP|MAIDENSPECIALWEIGHT|MAIDENCLAIMING|ALLOWANCEOPTIONALCLAIMING)\b",
         re.IGNORECASE,
     )
 
@@ -286,30 +295,37 @@ class ChartPDFParser:
             if race_num == 0:
                 continue
 
-            distance_m = self.DISTANCE_PATTERN.search(block)
-            surface_m = self.SURFACE_PATTERN.search(block)
+            distance_m = self.DISTANCE_PATTERN.search(block) or self.DISTANCE_PATTERN_NOSPACE.search(block)
+            surface_m = self.SURFACE_PATTERN.search(block) or self.SURFACE_PATTERN_NOSPACE.search(block)
             condition_m = self.CONDITION_PATTERN.search(block)
             purse_m = self.PURSE_PATTERN.search(block)
             race_type_m = self.RACE_TYPE_PATTERN.search(block)
 
-            # Fractional times
-            frac_times = self.FRACTIONAL_PATTERN.findall(block)
+            # Fractional and final times
+            frac_m = self.FRACTIONAL_PATTERN.search(block)
+            frac_times_raw = frac_m.group(1).strip().split() if frac_m else []
+            final_m = self.FINAL_TIME_PATTERN.search(block)
+
+            # Insert CamelCase spaces for distance: "FourAndOneHalf" -> "Four And One Half"
+            distance_raw = distance_m.group(1).strip() if distance_m else ""
+            if distance_raw and " " not in distance_raw:
+                distance_raw = re.sub(r"([a-z])([A-Z])", r"\1 \2", distance_raw)
 
             race_info = {
                 "race_number": race_num,
                 "track_code": track_code,
                 "track_name": TRACKS.get(track_code, track_code),
                 "race_date": race_date,
-                "distance": distance_m.group(1).strip() if distance_m else "",
+                "distance": distance_raw,
                 "surface": (surface_m.group(1)[0].upper() if surface_m else ""),
                 "track_condition": (condition_m.group(1) if condition_m else ""),
-                "purse": (purse_m.group(0).replace("$", "").replace(",", "") if purse_m else ""),
-                "race_type": (race_type_m.group(1) if race_type_m else ""),
-                "frac_1": self._parse_time(frac_times[0]) if len(frac_times) > 0 else "",
-                "frac_2": self._parse_time(frac_times[1]) if len(frac_times) > 1 else "",
-                "frac_3": self._parse_time(frac_times[2]) if len(frac_times) > 2 else "",
-                "frac_4": self._parse_time(frac_times[3]) if len(frac_times) > 3 else "",
-                "final_time_secs": self._parse_time(frac_times[-1]) if frac_times else "",
+                "purse": (purse_m.group(1).replace(",", "") if purse_m else ""),
+                "race_type": re.sub(r"([a-z])([A-Z])", r"\1 \2", race_type_m.group(1)) if race_type_m else "",
+                "frac_1": self._parse_time(frac_times_raw[0]) if len(frac_times_raw) > 0 else "",
+                "frac_2": self._parse_time(frac_times_raw[1]) if len(frac_times_raw) > 1 else "",
+                "frac_3": self._parse_time(frac_times_raw[2]) if len(frac_times_raw) > 2 else "",
+                "frac_4": self._parse_time(frac_times_raw[3]) if len(frac_times_raw) > 3 else "",
+                "final_time_secs": self._parse_time(final_m.group(1)) if final_m else "",
             }
 
             # Parse the results table for this race from the tables list
@@ -430,21 +446,75 @@ class ChartPDFParser:
         return entries
 
     def _parse_results_from_text(self, block: str, race_info: dict) -> List[Dict]:
-        """Fallback: parse horse entries from text when table extraction fails."""
+        """Parse horse entries from Equibase chart PDF text.
+
+        Equibase PDF lines look like:
+          --- 3 Bledsoe(Rosario,Joel) 119 b 2 6 3Head 1Head 111/2 0.78* ins,split
+          03/25/23KEE 5 WestSaratoga(Calleja,Andres) 112 b 3 5 51/2 5Head 41 42.86 midpack
+        Format: LastRaced Pgm HorseName(Jockey) Wgt M/E PP Start 1/4 Str Fin Odds Comments
+        """
         entries = []
         lines = block.split("\n")
+        finish_pos = 0
+
+        # Pattern: last-raced (--- or 18Feb232FG1 etc), pgm#, Name(Jockey), weight
+        # Last raced can be: ---, or date+track like "18Feb232FG1", "4Mar2312GP6"
+        horse_line_re = re.compile(
+            r"(\S+)\s+"                             # Last raced (any non-space token)
+            r"(\d{1,2})\s+"                         # Program number
+            r"(\w[^(]+)\(([^)]+)\)\s+"              # HorseName(Jockey)
+            r"(\d{2,3})\s+"                         # Weight
+            r"(\S+)\s+"                             # M/E (medication/equipment: b, Lb, Lbf, --)
+            r"(\d{1,2})\s+"                         # Post Position
+            r"(\d{1,2})\s+"                         # Start position
+            r"(.+)"                                 # Rest: running positions, odds, comments
+        )
 
         for line in lines:
-            # Look for lines that start with a number (finish position)
-            # and contain a horse name-like pattern
-            m = re.match(r"\s*(\d{1,2})\s+(\d{1,2})\s+(.{3,25})\s+", line)
+            m = horse_line_re.match(line.strip())
             if not m:
                 continue
 
+            finish_pos += 1
+            last_raced, pgm, horse, jockey, weight, med_equip, pp, _start, rest = m.groups()
+
+            # Parse the rest: running positions, finish, odds, comments
+            # Rest looks like: "3Head 1Head 111/2 0.78* ins,split3/16,cleared"
+            rest_parts = rest.split()
+            odds = ""
+            comment_parts = []
+            positions = []
+
+            for part in rest_parts:
+                # Odds look like: 0.78* or 26.07 or *1.40
+                if re.match(r"^\*?\d+\.\d+\*?$", part):
+                    odds = part.replace("*", "")
+                    # Everything after odds is comments
+                    idx = rest_parts.index(part)
+                    comment_parts = rest_parts[idx + 1:]
+                    break
+                else:
+                    positions.append(part)
+
             entry = {**race_info}
-            entry["finish"] = m.group(1)
-            entry["program_num"] = m.group(2)
-            entry["horse_name"] = m.group(3).strip()
+            entry["horse_name"] = horse.strip()
+            entry["program_num"] = pgm
+            entry["post_position"] = pp
+            entry["finish"] = str(finish_pos)
+            entry["jockey"] = jockey.replace(",", ", ") if jockey else ""
+            entry["weight"] = weight
+            entry["dollar_odds"] = odds
+            entry["medication"] = med_equip if med_equip != "--" else ""
+            entry["comment"] = " ".join(comment_parts)
+            # Running positions: typically 1/4, stretch, finish margin
+            if len(positions) >= 1:
+                entry["pos_1st_call"] = self._extract_pos(positions[0])
+                entry["margin_1st_call"] = self._extract_margin_from_pos(positions[0])
+            if len(positions) >= 2:
+                entry["pos_stretch"] = self._extract_pos(positions[1])
+                entry["margin_stretch"] = self._extract_margin_from_pos(positions[1])
+            if len(positions) >= 3:
+                entry["margin_finish"] = self._extract_margin_from_pos(positions[2])
 
             for c in OUTPUT_COLUMNS:
                 if c not in entry:
@@ -452,6 +522,28 @@ class ChartPDFParser:
             entries.append(entry)
 
         return entries
+
+    def _extract_margin_from_pos(self, text):
+        """Extract margin from position text like '111/2' or '3Head' or '21/4'."""
+        if not text:
+            return ""
+        # Remove leading position number to get margin
+        # "111/2" = 1 and 1/2 lengths, "3Head" = head margin at 3rd, etc
+        text = str(text).strip()
+        specials = {"head": 0.1, "hd": 0.1, "nose": 0.05, "neck": 0.25, "nk": 0.25}
+        text_lower = text.lower()
+        for key, val in specials.items():
+            if key in text_lower:
+                return val
+        # Try to extract fraction: "11/2" = 0.5, "31/4" = 0.25
+        m = re.search(r"(\d+)/(\d+)", text)
+        if m:
+            num, den = int(m.group(1)), int(m.group(2))
+            # Could be "11/2" meaning "1 and 1/2" or just "1/2"
+            prefix = text[:m.start()]
+            whole = int(prefix) if prefix and prefix.isdigit() else 0
+            return whole + num / den
+        return ""
 
     def _parse_time(self, text):
         if not text:
@@ -598,9 +690,23 @@ class RaceScraper:
 
     async def _start_browser(self):
         self.pw = await async_playwright().start()
-        ua = random.choice(USER_AGENTS)
         vp = random.choice(VIEWPORTS)
 
+        # Try connecting to running Chrome via CDP first
+        if self._cdp_port:
+            for url in [f"http://localhost:{self._cdp_port}", f"http://127.0.0.1:{self._cdp_port}"]:
+                try:
+                    self.browser = await self.pw.chromium.connect_over_cdp(url)
+                    self.context = self.browser.contexts[0]
+                    self.page = await self.context.new_page()
+                    log.info(f"Connected to your running Chrome on {url}!")
+                    return  # Skip bot detection — user's Chrome is already authenticated
+                except Exception as e:
+                    log.debug(f"CDP connect to {url} failed: {e}")
+            log.warning(f"Could not connect to Chrome on port {self._cdp_port}. Falling back to fresh browser.")
+
+        # Fallback: launch fresh Playwright browser
+        ua = random.choice(USER_AGENTS)
         self.browser = await self.pw.chromium.launch(
             headless=self.headless,
             args=[
@@ -619,7 +725,7 @@ class RaceScraper:
             window.chrome = { runtime: {} };
         """)
         self.page = await self.context.new_page()
-        log.info(f"Browser launched | Viewport: {vp['width']}x{vp['height']}")
+        log.info(f"Fresh browser launched | Viewport: {vp['width']}x{vp['height']}")
 
         # Navigate to Equibase and handle bot detection upfront
         await self._pass_bot_detection()
@@ -950,7 +1056,7 @@ class RaceScraper:
 
         if pdf_links and pdfplumber:
             # Filter to only real PDF URLs (the /static/chart/pdf/ ones are free)
-            real_pdf_links = [l for l in pdf_links if "/static/chart/pdf/" in l["href"] and l["href"].endswith(".pdf")]
+            real_pdf_links = [l for l in pdf_links if "/static/chart/" in l["href"] and l["href"].endswith(".pdf")]
             if real_pdf_links:
                 log.info(f"Found {len(real_pdf_links)} direct PDF chart links")
                 for link_info in real_pdf_links:
@@ -961,20 +1067,77 @@ class RaceScraper:
                         self.checkpoint.stats["pdfs"] += 1
                         await self.human.random_delay(2.0, 5.0)
             else:
-                log.debug(f"Found {len(pdf_links)} links but none are direct PDF URLs, skipping")
+                log.debug(f"Found {len(pdf_links)} links but none are direct PDF URLs")
 
-        # ── Strategy 1b: Try direct PDF URLs by race number ──
+        # ── Strategy 1b: Navigate to chart embed pages which redirect to PDFs ──
+        # The chartEmb.cfm?...&rn=N URLs redirect directly to the PDF file.
+        # The page URL after navigation IS the PDF URL.
+        if not entries and pdfplumber:
+            # eqbPDFChartPlus.cfm redirects directly to the PDF file
+            chart_base = f"https://www.equibase.com/premium/eqbPDFChartPlus.cfm?BorP=P&TID={track_code}&CTRY=USA&DT={date.strftime('%m/%d/%Y')}&DAY=D&STYLE=EQB"
+            saved_url = self.page.url
+            consecutive_failures = 0
+
+            log.info(f"Trying chart PDF download strategy with base: {chart_base}")
+            for race_num in range(1, 16):
+                chart_url = f"{chart_base}&RACE={race_num}"
+                log.info(f"Race {race_num}: downloading from {chart_url}")
+                try:
+                    # Use page.request API to download the PDF bytes directly
+                    # This avoids the "Download is starting" navigation error
+                    response = await self.page.request.get(chart_url, timeout=30000)
+                    status = response.status
+                    content_type = response.headers.get("content-type", "")
+                    pdf_bytes = await response.body()
+
+                    log.info(f"Race {race_num}: HTTP {status}, type={content_type}, size={len(pdf_bytes)}")
+
+                    if pdf_bytes[:5].startswith(b"%PDF") and len(pdf_bytes) > 1000:
+                        parsed = self.pdf_parser.parse_pdf_bytes(pdf_bytes, track_code, race_date_str)
+                        if parsed:
+                            entries.extend(parsed)
+                            self.checkpoint.stats["pdfs"] += 1
+                            consecutive_failures = 0
+                            log.info(f"Race {race_num}: Parsed {len(parsed)} entries from PDF")
+                        else:
+                            log.info(f"Race {race_num}: PDF valid but parsing returned 0 entries")
+                            consecutive_failures += 1
+                    elif status == 404 or len(pdf_bytes) < 500:
+                        log.info(f"Race {race_num}: No chart available (404 or tiny response)")
+                        consecutive_failures += 1
+                    else:
+                        log.info(f"Race {race_num}: Response not a PDF (starts with {pdf_bytes[:30]!r})")
+                        consecutive_failures += 1
+
+                    await self.human.random_delay(1.0, 2.0)
+
+                    if consecutive_failures >= 3:
+                        log.info(f"3 consecutive failures after race {race_num}, stopping")
+                        break
+                except Exception as e:
+                    log.info(f"Race {race_num} chart download failed: {e}")
+                    consecutive_failures += 1
+                    if consecutive_failures >= 3:
+                        break
+
+            if entries:
+                log.info(f"Chart embed PDFs found {len(entries)} entries from {self.checkpoint.stats['pdfs']} PDFs")
+            else:
+                # Navigate back for further strategies
+                try:
+                    await self.page.goto(saved_url, wait_until="domcontentloaded", timeout=15000)
+                except Exception:
+                    pass
+
+        # ── Strategy 1c: Try direct PDF URLs by race number ──
         if not entries and pdfplumber:
             date_mmddyy = date.strftime("%m%d%y")
             date_ymd = date.strftime("%Y%m%d")
             track_lower = track_code.lower()
             year = date.strftime("%Y")
 
-            # Build list of PDF URL candidates for race 1 (try both patterns)
             test_urls = [
-                # Recent format: /static/chart/pdf/KEE040326USA1.pdf
                 self.PDF_CHART_URL.format(track=track_code, date=date_mmddyy, race_num=1),
-                # Historical format: /static/chart/2023/usa/kee/20230407-usa-kee-1-d.standard.pdf
                 self.PDF_CHART_HISTORICAL_URL.format(
                     year=year, track_lower=track_lower, date_ymd=date_ymd, race_num=1
                 ),
@@ -992,7 +1155,6 @@ class RaceScraper:
                     break
 
             if working_pattern:
-                # Fetch remaining races using the pattern that worked
                 for race_num in range(2, 16):
                     pdf_url = working_pattern.format(race_num=race_num)
                     pdf_entries = await self._download_and_parse_pdf(pdf_url, track_code, race_date_str)
@@ -1001,7 +1163,7 @@ class RaceScraper:
                         self.checkpoint.stats["pdfs"] += 1
                         await self.human.random_delay(1.0, 3.0)
                     else:
-                        break  # No more races
+                        break
                 log.info(f"Direct PDF parsing found {len(entries)} entries from {self.checkpoint.stats['pdfs']} PDFs")
             else:
                 log.debug("No direct PDF URLs accessible, falling back to HTML")
