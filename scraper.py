@@ -700,7 +700,8 @@ class RaceScraper:
                     self.context = self.browser.contexts[0]
                     self.page = await self.context.new_page()
                     log.info(f"Connected to your running Chrome on {url}!")
-                    return  # Skip bot detection — user's Chrome is already authenticated
+                    await self._prompt_login()
+                    return
                 except Exception as e:
                     log.debug(f"CDP connect to {url} failed: {e}")
             log.warning(f"Could not connect to Chrome on port {self._cdp_port}. Falling back to fresh browser.")
@@ -729,6 +730,61 @@ class RaceScraper:
 
         # Navigate to Equibase and handle bot detection upfront
         await self._pass_bot_detection()
+
+    async def _prompt_login(self):
+        """Prompt user to sign in via the URL bar, then wait."""
+        # Check if already signed in
+        await self.page.goto("https://accounts.google.com", wait_until="domcontentloaded", timeout=15000)
+        await asyncio.sleep(2)
+        page_url = self.page.url
+        if "myaccount" in page_url or "signin" not in page_url.lower():
+            text = await self.page.inner_text("body")
+            if "sign in" not in text.lower()[:300] and len(text) > 100:
+                log.info("Already signed into Google. Continuing...")
+                return
+
+        # Use the URL bar + page content as a message to the user
+        await self.page.goto("data:text/html,<html><head><title>SIGN IN TO CHROME - Scraper waiting...</title></head>"
+                             "<body style='display:flex;align-items:center;justify-content:center;height:100vh;"
+                             "font-family:Arial;background:%23222;color:white'>"
+                             "<div style='text-align:center'>"
+                             "<h1>Please sign in to your Chrome profile</h1>"
+                             "<p style='font-size:24px;color:%23aaa'>Click your profile icon (top right) and sign in to Google.</p>"
+                             "<p style='font-size:20px;color:%23888'>The scraper will continue automatically once you're signed in.</p>"
+                             "<p style='font-size:18px;color:%23666'>You have 2 minutes.</p>"
+                             "</div></body></html>")
+
+        log.info("=" * 50)
+        log.info("WAITING FOR SIGN-IN -- Check the Chrome window")
+        log.info("=" * 50)
+
+        # Poll: check if user signed in every 5 seconds for 2 minutes
+        for i in range(24):
+            await asyncio.sleep(5)
+            try:
+                # Open a new tab to check sign-in status
+                check_page = await self.context.new_page()
+                await check_page.goto("https://accounts.google.com", wait_until="domcontentloaded", timeout=10000)
+                await asyncio.sleep(2)
+                check_url = check_page.url
+                check_text = await check_page.inner_text("body")
+                await check_page.close()
+
+                if "myaccount" in check_url or ("sign in" not in check_text.lower()[:300] and len(check_text) > 100):
+                    log.info("Sign-in detected! Continuing scraper...")
+                    # Show success message briefly
+                    await self.page.goto("data:text/html,<html><body style='display:flex;align-items:center;"
+                                         "justify-content:center;height:100vh;font-family:Arial;background:%23222;"
+                                         "color:%2300ff00'><h1>Signed in! Starting scraper...</h1></body></html>")
+                    await asyncio.sleep(2)
+                    return
+            except Exception:
+                pass
+            remaining = 120 - (i + 1) * 5
+            if i % 4 == 3:
+                log.info(f"Still waiting for sign-in... ({remaining}s remaining)")
+
+        log.warning("Timed out waiting for sign-in (2 min). Continuing anyway...")
 
     async def _pass_bot_detection(self):
         """Navigate to Equibase and let the user solve any captcha."""
