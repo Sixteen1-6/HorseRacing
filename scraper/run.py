@@ -37,8 +37,8 @@ Usage:
   # Full 10-year scrape
   python3 -m scraper --start 2016-01-01 --end 2026-04-04
 
-  # Concurrent scraping (4 browser contexts)
-  python3 -m scraper --start 2024-01-01 --end 2024-12-31 --concurrency 4
+  # Concurrent scraping (4 browser contexts) with verbose output
+  python3 -m scraper --start 2024-01-01 --end 2024-12-31 --concurrency 4 -v
 """
 
 import asyncio
@@ -48,6 +48,7 @@ import os
 import re
 import random
 import sys
+import time
 import logging
 import argparse
 from datetime import datetime, timedelta
@@ -138,6 +139,7 @@ class RaceScraper:
         self._career_hit = 0
         # Atomic progress counter for concurrent workers
         self._completed_count = 0
+        self._run_start_time = 0.0
 
     # ── Browser lifecycle ────────────────────────────────────
 
@@ -178,6 +180,7 @@ class RaceScraper:
             # CDP: reuse the existing context, just open a new page
             context = self.browser.contexts[0]
             page = await context.new_page()
+            log.debug(f"New CDP page opened")
             return context, page
 
         context = await self.browser.new_context(
@@ -191,7 +194,8 @@ class RaceScraper:
             window.chrome = { runtime: {} };
         """)
         page = await context.new_page()
-        log.debug(f"New context created | UA: {ua[:40]}... | Viewport: {vp['width']}x{vp['height']}")
+        log.debug(f"New context | UA: {ua[ua.rfind(')')-15:ua.rfind(')')]}... | "
+                  f"Viewport: {vp['width']}x{vp['height']}")
         return context, page
 
     async def _setup_session(self):
@@ -492,7 +496,14 @@ class RaceScraper:
         # Fast path: already cached
         if key in self._career_cache:
             self._career_hit += 1
-            return self._career_cache[key]
+            stats = self._career_cache[key]
+            if stats:
+                log.debug(f"  Career CACHE HIT: {name} "
+                          f"({stats.get('num_past_starts',0)} starts, "
+                          f"{stats.get('num_past_wins',0)} wins)")
+            else:
+                log.debug(f"  Career CACHE HIT: {name} (no data)")
+            return stats
 
         # Get or create a lock for this horse
         async with self._career_lock_creation:
@@ -506,8 +517,17 @@ class RaceScraper:
                 self._career_hit += 1
                 return self._career_cache[key]
             self._career_miss += 1
+            log.debug(f"  Career FETCH: {name} (searching Equibase...)")
             stats = await self._fetch_horse_career_by_name(name, page)
             self._career_cache[key] = stats
+            if stats:
+                log.debug(f"  Career FOUND: {name} -> "
+                          f"{stats.get('num_past_starts',0)} starts, "
+                          f"{stats.get('num_past_wins',0)} wins, "
+                          f"{stats.get('num_past_seconds',0)} 2nds, "
+                          f"{stats.get('num_past_thirds',0)} 3rds")
+            else:
+                log.debug(f"  Career NOT FOUND: {name} (no profile on Equibase)")
             await self.human.random_delay(0.4, 1.0)
             return stats
 
@@ -529,7 +549,11 @@ class RaceScraper:
             seen.add(key)
             unique_names.append(name)
 
-        for name in unique_names:
+        log.debug(f"  Enriching career stats for {len(unique_names)} unique horses "
+                  f"(cache: {len(self._career_cache)} horses, "
+                  f"{self._career_hit}/{self._career_hit + self._career_miss} hit rate)")
+
+        for idx, name in enumerate(unique_names):
             key = name.lower()
             stats = await self._get_career_stats(name, page)
 
@@ -673,6 +697,7 @@ class RaceScraper:
             await page.goto(chart_embed_url, wait_until="domcontentloaded", timeout=15000)
             await self.human.random_delay(1.2, 2.5)
             if await _check_page("Premium chart embed"):
+                log.debug(f"  Nav strategy: chart embed succeeded for {track_code} {date.strftime('%Y-%m-%d')}")
                 return True
         except Exception as e:
             log.info(f"Premium chart embed URL failed: {e}")
@@ -686,6 +711,7 @@ class RaceScraper:
             await page.goto(index_url, wait_until="domcontentloaded", timeout=15000)
             await self.human.random_delay(1.2, 2.5)
             if await _check_page("Premium chart index"):
+                log.debug(f"  Nav strategy: chart index succeeded for {track_code} {date.strftime('%Y-%m-%d')}")
                 return True
         except Exception as e:
             log.info(f"Premium chart index URL failed: {e}")
@@ -719,6 +745,7 @@ class RaceScraper:
                         log.info(f"Google -> landed on: {landed_url}")
                         text = await page.inner_text("body")
                         if not self._page_has_no_data(text):
+                            log.debug(f"  Nav strategy: Google search succeeded for {track_code} {date.strftime('%Y-%m-%d')}")
                             return True
                 except Exception as e:
                     log.debug(f"Google click-through failed: {e}")
@@ -822,6 +849,10 @@ class RaceScraper:
                             self.checkpoint.stats["pdfs"] += 1
                             consecutive_failures = 0
                             log.info(f"Race {race_num}: Parsed {len(parsed)} entries from PDF")
+                            # Verbose: show horses parsed from this race
+                            if log.isEnabledFor(logging.DEBUG):
+                                horses = [e.get("horse_name", "?") for e in parsed]
+                                log.debug(f"  Race {race_num} horses: {', '.join(horses)}")
                         else:
                             log.info(f"Race {race_num}: PDF valid but parsing returned 0 entries")
                             consecutive_failures += 1
@@ -974,6 +1005,17 @@ class RaceScraper:
             # Dump page diagnostics for debugging
             await self._dump_page_diagnostics(page)
 
+        # Verbose: summarize all entries found
+        if entries and log.isEnabledFor(logging.DEBUG):
+            races = {}
+            for e in entries:
+                rn = e.get("race_number", "?")
+                races.setdefault(rn, []).append(e.get("horse_name", "?"))
+            for rn in sorted(races.keys(), key=lambda x: int(x) if str(x).isdigit() else 0):
+                horses = races[rn]
+                log.debug(f"  Race {rn}: {len(horses)} entries -> "
+                          f"{', '.join(horses[:5])}{'...' if len(horses) > 5 else ''}")
+
         return entries
 
     async def _dump_page_diagnostics(self, page: Page):
@@ -1072,24 +1114,23 @@ class RaceScraper:
         Parse Equibase summary results pages.
 
         Actual Equibase page structure (confirmed by live inspection):
-        ┌────────────────────────────────────────────────────────┐
-        │ RACE 1                                                  │
-        │ Off at: 1:05  Race type: Maiden Special Weight          │
-        │ Age Restriction: Two Year Old                           │
-        │ Purse: $90,000                                          │
-        │ Distance: Four And One Half Furlongs On The Dirt        │
-        │ Track Condition: Sloppy                                 │
-        │ Winning Time: 52.74                                     │
-        ├──────┬──────────────┬──────────────┬──────┬───────┬─────┤
-        │ Pgm  │ Horse        │ Jockey       │ Win  │ Place │ Show│
-        ├──────┼──────────────┼──────────────┼──────┼───────┼─────┤
-        │ 8    │ Suspicions   │ Pietro Moran │ 4.60 │ 2.82  │2.54 │
-        │ 5    │ Bourbon Town │ Luis Saez    │      │ 2.76  │2.26 │
-        │ 7    │ Tigrado      │ Evin Roman   │      │       │4.92 │
-        └──────┴──────────────┴──────────────┴──────┴───────┴─────┘
+        +------------------------------------------------------------+
+        | RACE 1                                                      |
+        | Off at: 1:05  Race type: Maiden Special Weight              |
+        | Age Restriction: Two Year Old                               |
+        | Purse: $90,000                                              |
+        | Distance: Four And One Half Furlongs On The Dirt            |
+        | Track Condition: Sloppy                                     |
+        | Winning Time: 52.74                                         |
+        +------+--------------+--------------+------+-------+--------+
+        | Pgm  | Horse        | Jockey       | Win  | Place | Show   |
+        +------+--------------+--------------+------+-------+--------+
+        | 8    | Suspicions   | Pietro Moran | 4.60 | 2.82  | 2.54   |
+        | 5    | Bourbon Town | Luis Saez    |      | 2.76  | 2.26   |
+        | 7    | Tigrado      | Evin Roman   |      |       | 4.92   |
+        +------+--------------+--------------+------+-------+--------+
         Also ran: 3 - Super Saiyajin , 2 - Joe Joe Dude , 9 - Cross Power
         Winning Breeder: ... Winning Owner: ... Winning Trainer: ...
-        └────────────────────────────────────────────────────────┘
 
         Key facts:
         - Tables have headers: Pgm | Horse | Jockey | Win | Place | Show
@@ -1191,6 +1232,12 @@ class RaceScraper:
             if time_m:
                 race_meta["final_time_secs"] = self.pdf_parser._parse_time(time_m.group(1))
 
+            # Verbose: log race metadata
+            log.debug(f"  Race {race_num}: type={race_meta.get('race_type','?')}, "
+                      f"purse=${race_meta.get('purse','?')}, "
+                      f"surface={race_meta.get('surface','?')}, "
+                      f"condition={race_meta.get('track_condition','?')}")
+
             # Parse the "Also ran:" section for non-placed horses
             also_ran = []
             also_m = re.search(r"Also ran:\s*(.+?)(?:\n|Scratched|Wager|$)", block_text, re.S)
@@ -1231,7 +1278,7 @@ class RaceScraper:
                     entry["horse_name"] = horse
                     entry["jockey"] = jockey
                     entry["finish"] = str(finish_pos)
-                    # Use Win payoff as a proxy for odds (Win / 2 ≈ odds)
+                    # Use Win payoff as a proxy for odds (Win / 2 ~ odds)
                     if win:
                         try:
                             entry["dollar_odds"] = str(round(float(win) / 2, 2))
@@ -1366,9 +1413,13 @@ class RaceScraper:
                                 total: int, skipped: int):
         """Process a single (track, date) target using the given page."""
         date_str = date.strftime("%Y-%m-%d")
+        t0 = time.perf_counter()
+
+        log.debug(f"[START] {track} {date_str}")
 
         # Occasional distraction browsing (~5% of the time)
         if random.random() < 0.05:
+            log.debug(f"  Distraction browse before {track} {date_str}")
             await self.human.browse_distraction(page)
 
         # Navigate to race day
@@ -1386,23 +1437,30 @@ class RaceScraper:
             if entries and self._career_stats_enabled:
                 await self._enrich_with_career_stats(entries, page)
 
+            elapsed = time.perf_counter() - t0
+
             if entries:
                 self._write_entries(entries)
                 self.checkpoint.mark(track, date, len(entries))
                 self._completed_count += 1
                 pct = (skipped + self._completed_count) / total * 100
+
+                # Count unique races
+                race_nums = {e.get("race_number") for e in entries}
                 log.info(
-                    f"[{pct:.1f}%] {track} {date_str}: {len(entries)} entries "
+                    f"[{pct:.1f}%] {track} {date_str}: {len(entries)} entries, "
+                    f"{len(race_nums)} races ({elapsed:.1f}s) "
                     f"(total: {self.checkpoint.stats['entries']:,})"
                 )
             else:
                 self.checkpoint.mark(track, date, 0)
                 self._completed_count += 1
-                log.debug(f"{track} {date_str}: page found but no parseable data")
+                log.debug(f"[DONE] {track} {date_str}: page found but no parseable data ({elapsed:.1f}s)")
         else:
+            elapsed = time.perf_counter() - t0
             self.checkpoint.mark(track, date, 0)
             self._completed_count += 1
-            log.debug(f"{track} {date_str}: no racing")
+            log.debug(f"[SKIP] {track} {date_str}: no racing ({elapsed:.1f}s)")
 
         # Variable delay between pages
         await self.human.random_delay(1.5, 3.5)
@@ -1418,6 +1476,7 @@ class RaceScraper:
         log.info(f"Targets: {total:,} total, {skipped:,} done, {len(remaining):,} remaining")
         log.info(f"Concurrency: {self._concurrency} browser context(s)")
 
+        self._run_start_time = time.perf_counter()
         self._open_csv()
         try:
             await self._start_browser()
@@ -1460,13 +1519,19 @@ class RaceScraper:
             self._close_csv()
             await self._stop_browser()
 
+            elapsed = time.perf_counter() - self._run_start_time
             s = self.checkpoint.stats
+            throughput = s['pages'] / elapsed * 3600 if elapsed > 0 else 0
             log.info(f"\n{'='*50}")
             log.info(f"DONE | Pages: {s['pages']:,} | Entries: {s['entries']:,} | "
                      f"PDFs: {s['pdfs']} | Errors: {s['errors']}")
+            log.info(f"Time: {elapsed:.0f}s ({elapsed/3600:.1f}h) | "
+                     f"Throughput: {throughput:.0f} pages/h")
             if self._career_stats_enabled:
-                log.info(f"Career stats | cache hits: {self._career_hit} | "
-                         f"misses: {self._career_miss} | unique horses: {len(self._career_cache)}")
+                total_lookups = self._career_hit + self._career_miss
+                hit_rate = (self._career_hit / total_lookups * 100) if total_lookups > 0 else 0
+                log.info(f"Career stats | {len(self._career_cache)} unique horses | "
+                         f"cache hit rate: {hit_rate:.0f}% ({self._career_hit}/{total_lookups})")
             log.info(f"Output: {self.output_file}")
             log.info(f"{'='*50}")
 
@@ -1489,12 +1554,12 @@ def _generate_targets(start_date, end_date, track_codes):
 
 def main():
     p = argparse.ArgumentParser(
-        description="Scrape 10 years of horse racing data via Google → Equibase",
+        description="Scrape 10 years of horse racing data via Google -> Equibase",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Debug one day (visible browser)
-  python3 -m scraper --tracks KEE --start 2026-04-03 --end 2026-04-03 --visible
+  # Debug one day (visible browser, verbose)
+  python3 -m scraper --tracks KEE --start 2026-04-03 --end 2026-04-03 --visible -v
 
   # One month of Keeneland
   python3 -m scraper --tracks KEE --start 2023-04-01 --end 2023-04-30
@@ -1534,8 +1599,21 @@ Examples:
                         "Use 4 for ~3-4x speedup. Beyond 8 risks rate limiting.")
     p.add_argument("--targets-file",
                    help="JSON file with [[track, date], ...] targets (used by launcher)")
+    p.add_argument("-v", "--verbose", action="store_true",
+                   help="Show detailed output: per-horse career lookups, race metadata, "
+                        "entry rosters, timing per race day, cache hit rates, "
+                        "navigation strategy used, and worker lifecycle events.")
 
     args = p.parse_args()
+
+    # Set log level based on --verbose
+    if args.verbose:
+        log.setLevel(logging.DEBUG)
+        # Also set the root scraper logger so all modules pick it up
+        logging.getLogger("scraper").setLevel(logging.DEBUG)
+        log.debug("Verbose mode enabled")
+    else:
+        log.setLevel(logging.INFO)
 
     if args.list_tracks:
         for code, name in sorted(TRACKS.items()):
