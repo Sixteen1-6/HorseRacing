@@ -42,15 +42,18 @@ Usage:
 """
 
 import asyncio
+import contextvars
 import csv
 import json
 import os
 import re
 import random
+import subprocess
 import sys
 import time
 import logging
 import argparse
+import platform
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import List, Optional, Dict, Tuple
@@ -71,12 +74,26 @@ from .human_behavior import HumanBehavior
 from .pdf_parser import ChartPDFParser
 from .checkpoint import Checkpoint
 
+# ── Per-worker context variable for log prefixing ────────────
+# Each async worker sets this; the log filter reads it automatically.
+_worker_id: contextvars.ContextVar[str] = contextvars.ContextVar('worker_id', default='')
+
+
+class _WorkerFilter(logging.Filter):
+    """Injects the current async worker ID into every log record."""
+    def filter(self, record):
+        wid = _worker_id.get('')
+        record.worker = f" [{wid}]" if wid else ""
+        return True
+
+
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
+    format="%(asctime)s [%(levelname)s]%(worker)s %(message)s",
     handlers=[logging.StreamHandler(), logging.FileHandler("scraper_v3.log")],
 )
 log = logging.getLogger("scraper")
+log.addFilter(_WorkerFilter())
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -143,10 +160,72 @@ class RaceScraper:
 
     # ── Browser lifecycle ────────────────────────────────────
 
+    @staticmethod
+    def _find_chrome_executable() -> Optional[str]:
+        """Find the Chrome/Chromium executable on this system."""
+        system = platform.system()
+        candidates = []
+        if system == "Windows":
+            candidates = [
+                Path(os.environ.get("PROGRAMFILES", "C:\\Program Files")) / "Google" / "Chrome" / "Application" / "chrome.exe",
+                Path(os.environ.get("PROGRAMFILES(X86)", "C:\\Program Files (x86)")) / "Google" / "Chrome" / "Application" / "chrome.exe",
+                Path(os.environ.get("LOCALAPPDATA", "")) / "Google" / "Chrome" / "Application" / "chrome.exe",
+            ]
+        elif system == "Darwin":
+            candidates = [
+                Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"),
+            ]
+        else:  # Linux / WSL
+            # Check if we're in WSL and can launch Windows Chrome
+            wsl = Path("/proc/version").exists() and "microsoft" in Path("/proc/version").read_text().lower()
+            if wsl:
+                for prefix in ["/mnt/c/Program Files/Google/Chrome/Application",
+                               "/mnt/c/Program Files (x86)/Google/Chrome/Application"]:
+                    p = Path(prefix) / "chrome.exe"
+                    if p.exists():
+                        candidates.append(p)
+            # Native Linux Chrome
+            for name in ["google-chrome", "google-chrome-stable", "chromium-browser", "chromium"]:
+                import shutil
+                found = shutil.which(name)
+                if found:
+                    candidates.append(Path(found))
+
+        for path in candidates:
+            if path.exists():
+                return str(path)
+        return None
+
+    def _launch_chrome_debug(self) -> Optional[subprocess.Popen]:
+        """Auto-launch Chrome with --remote-debugging-port if not already running."""
+        chrome = self._find_chrome_executable()
+        if not chrome:
+            log.debug("Chrome executable not found — skipping auto-launch")
+            return None
+
+        log.info(f"Launching Chrome with debug port {self._cdp_port}: {chrome}")
+        try:
+            proc = subprocess.Popen(
+                [chrome, f"--remote-debugging-port={self._cdp_port}"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            # Give Chrome a moment to start and open the debug port
+            time.sleep(2)
+            if proc.poll() is not None:
+                log.warning(f"Chrome exited immediately (code {proc.returncode})")
+                return None
+            log.info(f"Chrome launched (pid={proc.pid})")
+            return proc
+        except Exception as e:
+            log.warning(f"Failed to launch Chrome: {e}")
+            return None
+
     async def _start_browser(self):
         """Launch the browser only. Context/page creation is handled by _create_context()."""
         self.pw = await async_playwright().start()
         self._is_cdp = False
+        self._chrome_proc = None
 
         # Try connecting to running Chrome via CDP first
         if self._cdp_port:
@@ -159,6 +238,19 @@ class RaceScraper:
                     return
                 except Exception as e:
                     log.debug(f"CDP connect to {url} failed: {e}")
+
+            # Chrome isn't running — try to auto-launch it
+            self._chrome_proc = self._launch_chrome_debug()
+            if self._chrome_proc:
+                for url in [f"http://localhost:{self._cdp_port}", f"http://127.0.0.1:{self._cdp_port}"]:
+                    try:
+                        self.browser = await self.pw.chromium.connect_over_cdp(url)
+                        self._is_cdp = True
+                        log.info(f"Connected to auto-launched Chrome on {url}!")
+                        return
+                    except Exception as e:
+                        log.debug(f"CDP connect after auto-launch failed: {e}")
+
             log.warning(f"Could not connect to Chrome on port {self._cdp_port}. Falling back to fresh browser.")
 
         # Fallback: launch fresh Playwright browser
@@ -204,7 +296,11 @@ class RaceScraper:
         context, page = await self._create_context()
         try:
             await self._pass_bot_detection(page)
-            await self._wait_for_equibase_login(page)
+            # Only wait for login when there's a visible browser to sign into
+            if not self.headless or self._is_cdp:
+                await self._wait_for_equibase_login(page)
+            else:
+                log.debug("Headless mode — skipping Equibase login wait")
         finally:
             await page.close()
             if not self._is_cdp:
@@ -1407,6 +1503,41 @@ class RaceScraper:
             meta["race_type"] = type_m.group(1)
         return meta
 
+    # ── Progress reporter ─────────────────────────────────────
+
+    async def _progress_reporter(self, remaining_count: int, total: int,
+                                 skipped: int, interval: float = 60.0):
+        """Background coroutine that logs progress and ETA periodically."""
+        while True:
+            await asyncio.sleep(interval)
+            completed = self._completed_count
+            if completed == 0:
+                continue
+            if completed >= remaining_count:
+                break
+
+            elapsed = time.perf_counter() - self._run_start_time
+            rate = completed / elapsed  # targets per second
+            remaining = remaining_count - completed
+            eta_seconds = remaining / rate if rate > 0 else 0
+            pct = (skipped + completed) / total * 100 if total > 0 else 0
+
+            if eta_seconds < 60:
+                eta_str = f"{eta_seconds:.0f}s"
+            elif eta_seconds < 3600:
+                eta_str = f"{eta_seconds / 60:.0f}m"
+            else:
+                eta_str = f"{eta_seconds / 3600:.1f}h"
+
+            s = self.checkpoint.stats
+            log.info(
+                f"[PROGRESS] {pct:.1f}% ({completed}/{remaining_count}) | "
+                f"{s['entries']:,} entries | "
+                f"{elapsed / 60:.1f}m elapsed | "
+                f"ETA: {eta_str} | "
+                f"{rate * 3600:.0f} pages/h"
+            )
+
     # ── Per-target worker ────────────────────────────────────
 
     async def _process_race_day(self, page: Page, track: str, date: datetime,
@@ -1484,8 +1615,16 @@ class RaceScraper:
 
             semaphore = asyncio.Semaphore(self._concurrency)
 
+            # Pool of reusable worker IDs (W1..WN) so logs show which slot is active
+            _id_pool = asyncio.Queue()
+            for _i in range(1, self._concurrency + 1):
+                _id_pool.put_nowait(_i)
+
             async def worker(track, date):
                 async with semaphore:
+                    wid = await _id_pool.get()
+                    if self._concurrency > 1:
+                        _worker_id.set(f"W{wid}")
                     context, page = await self._create_context()
                     try:
                         await self._process_race_day(page, track, date, total, skipped)
@@ -1497,12 +1636,26 @@ class RaceScraper:
                         await page.close()
                         if not self._is_cdp:
                             await context.close()
+                        _id_pool.put_nowait(wid)
+                        _worker_id.set('')
+
+            # Start background progress reporter (every 60s)
+            progress_task = asyncio.create_task(
+                self._progress_reporter(len(remaining), total, skipped, interval=60.0)
+            )
 
             # Launch all workers; semaphore limits actual concurrency
             results = await asyncio.gather(
                 *[worker(t, d) for t, d in remaining],
                 return_exceptions=True,
             )
+
+            # Stop progress reporter
+            progress_task.cancel()
+            try:
+                await progress_task
+            except asyncio.CancelledError:
+                pass
 
             # Log any unhandled exceptions from gather
             for i, result in enumerate(results):

@@ -83,3 +83,7 @@ HorseRacingPredictor/
 └── .gitignore                         # Git exclusions
 ```
 
+Test run:
+python -m scraper --start 2026-04-03 --end 2026-04-09 --concurrency 4 --no-google -v 2>&1 | tee debug-output/scrape.log
+
+Add -a after tee command to overwrite a file
