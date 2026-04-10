@@ -14,10 +14,10 @@ Output schema matches test_data.csv:
 
 Usage:
   # Start Chrome with debug port:
-  .\\start_chrome_debug3.ps1
+  .\\scripts\\start_chrome_debug.ps1
 
   # Then:
-  python scraper_entries.py --track KEE --date 2026-04-10 --output test_data.csv
+  python -m scraper.entries --track KEE --date 2026-04-10 --output test_data.csv
 """
 import argparse
 import asyncio
@@ -31,7 +31,8 @@ from typing import Dict, List, Optional
 from playwright.async_api import async_playwright
 
 # Reuse the human-behavior + track table from the chart scraper
-from scraper import HumanBehavior, TRACKS
+from .human_behavior import HumanBehavior
+from .config import TRACKS
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
