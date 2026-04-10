@@ -23,6 +23,10 @@ OUTPUT_COLUMNS = [
     "num_past_starts", "num_past_wins", "num_past_seconds", "num_past_thirds",
 ]
 
+CAREER_STAT_COLUMNS = ["num_past_starts", "num_past_wins", "num_past_seconds", "num_past_thirds"]
+GENERAL_COLUMNS = [c for c in OUTPUT_COLUMNS if c not in CAREER_STAT_COLUMNS]
+CAREER_CSV_COLUMNS = ["horse_name"] + CAREER_STAT_COLUMNS
+
 TRACKS = {
     "KEE": "Keeneland", "CD": "Churchill Downs", "GP": "Gulfstream Park",
     "SA": "Santa Anita Park", "AQU": "Aqueduct", "BEL": "Belmont Park",

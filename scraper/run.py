@@ -69,7 +69,8 @@ except ImportError:
     pdfplumber = None
     print("[WARN] pdfplumber not installed — PDF parsing disabled. pip install pdfplumber")
 
-from .config import OUTPUT_COLUMNS, TRACKS, USER_AGENTS, VIEWPORTS, is_race_day
+from .config import (OUTPUT_COLUMNS, GENERAL_COLUMNS, CAREER_STAT_COLUMNS,
+                     CAREER_CSV_COLUMNS, TRACKS, USER_AGENTS, VIEWPORTS, is_race_day)
 from .human_behavior import HumanBehavior
 from .pdf_parser import ChartPDFParser
 from .checkpoint import Checkpoint
@@ -132,12 +133,13 @@ class RaceScraper:
 
     def __init__(self, output_file="historical_races.csv", headless=True, use_google=True,
                  cdp_port=9222, checkpoint_path="scraper_v3_checkpoint.json",
-                 career_stats=False, concurrency=1):
+                 career_stats=False, concurrency=1, min_rescrape_days=7):
         self.output_file = output_file
         self.headless = headless
         self._use_google = use_google
         self._cdp_port = cdp_port
         self._concurrency = max(1, concurrency)
+        self._min_rescrape_days = min_rescrape_days
         self.checkpoint = Checkpoint(checkpoint_path)
         self.pdf_parser = ChartPDFParser()
         self.human = HumanBehavior()
@@ -145,6 +147,11 @@ class RaceScraper:
         self.browser = None
         self._csv_file = None
         self._csv_writer = None
+        # Split file paths derived from output_file
+        base, ext = os.path.splitext(output_file)
+        self._general_file = f"{base}_general{ext}"
+        self._career_file = f"{base}_career_stats{ext}"
+        self._meta_file = f"{base}_meta.json"
         # Career stats enrichment
         self._career_stats_enabled = career_stats
         # Cache: horse_name_lower -> {num_past_starts, num_past_wins, num_past_seconds, num_past_thirds}
@@ -662,10 +669,10 @@ class RaceScraper:
     # ── CSV output ───────────────────────────────────────────
 
     def _open_csv(self):
-        exists = os.path.exists(self.output_file) and os.path.getsize(self.output_file) > 0
-        self._csv_file = open(self.output_file, "a", newline="", encoding="utf-8")
+        exists = os.path.exists(self._general_file) and os.path.getsize(self._general_file) > 0
+        self._csv_file = open(self._general_file, "a", newline="", encoding="utf-8")
         self._csv_writer = csv.DictWriter(
-            self._csv_file, fieldnames=OUTPUT_COLUMNS, extrasaction="ignore"
+            self._csv_file, fieldnames=GENERAL_COLUMNS, extrasaction="ignore"
         )
         if not exists:
             self._csv_writer.writeheader()
@@ -680,6 +687,184 @@ class RaceScraper:
     def _close_csv(self):
         if self._csv_file:
             self._csv_file.close()
+
+    # ── Cache management ─────────────────────────────────────
+
+    def _load_meta(self) -> Optional[Dict]:
+        """Load scrape metadata (date range) from JSON file."""
+        if not os.path.exists(self._meta_file):
+            return None
+        try:
+            with open(self._meta_file) as f:
+                return json.load(f)
+        except Exception:
+            return None
+
+    def _save_meta(self, start_date: datetime, end_date: datetime):
+        """Save scrape metadata so future runs can check the cache."""
+        meta = {
+            "start_date": start_date.strftime("%Y-%m-%d"),
+            "end_date": end_date.strftime("%Y-%m-%d"),
+            "scraped_at": datetime.now().isoformat(),
+            "entry_count": self.checkpoint.stats["entries"],
+        }
+        with open(self._meta_file, "w") as f:
+            json.dump(meta, f, indent=2)
+        log.debug(f"Saved scrape metadata to {self._meta_file}")
+
+    def _should_scrape(self, start_date: datetime, end_date: datetime) -> bool:
+        """Check if we need to re-scrape based on cached general CSV.
+
+        Returns False (skip scraping) if:
+          - general CSV + meta file exist
+          - the new date range extends less than min_rescrape_days
+            beyond the cached range (in either direction)
+        """
+        if not os.path.exists(self._general_file):
+            log.debug(f"No cache: {self._general_file} not found")
+            return True
+
+        meta = self._load_meta()
+        if not meta or "start_date" not in meta or "end_date" not in meta:
+            log.debug("No valid metadata — will re-scrape")
+            return True
+
+        cached_start = datetime.strptime(meta["start_date"], "%Y-%m-%d")
+        cached_end = datetime.strptime(meta["end_date"], "%Y-%m-%d")
+
+        new_days_before = max(0, (cached_start - start_date).days)
+        new_days_after = max(0, (end_date - cached_end).days)
+        total_new_days = new_days_before + new_days_after
+
+        log.debug(f"Cache check: cached={meta['start_date']}..{meta['end_date']}, "
+                  f"requested={start_date.strftime('%Y-%m-%d')}..{end_date.strftime('%Y-%m-%d')}, "
+                  f"new_days={total_new_days} (threshold={self._min_rescrape_days})")
+
+        if total_new_days >= self._min_rescrape_days:
+            log.info(f"Cache stale: {total_new_days} new days >= {self._min_rescrape_days} threshold — re-scraping")
+            return True
+
+        log.info(f"Cache hit: {self._general_file} covers requested range "
+                 f"({total_new_days} new days < {self._min_rescrape_days} threshold)")
+        return False
+
+    def _load_career_cache_from_file(self):
+        """Populate in-memory career cache from the career stats CSV."""
+        if not os.path.exists(self._career_file):
+            return
+        count = 0
+        with open(self._career_file, "r", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                name = (row.get("horse_name") or "").strip()
+                if not name:
+                    continue
+                key = name.lower()
+                stats = {}
+                for col in CAREER_STAT_COLUMNS:
+                    val = row.get(col, "")
+                    stats[col] = int(val) if val and str(val).strip().isdigit() else 0
+                # Only cache if we actually have data (at least 1 start)
+                if stats.get("num_past_starts", 0) > 0:
+                    self._career_cache[key] = stats
+                    count += 1
+        log.info(f"Loaded {count} horses from career cache ({self._career_file})")
+
+    def _save_career_cache_to_file(self):
+        """Write in-memory career cache to CSV."""
+        count = 0
+        with open(self._career_file, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=CAREER_CSV_COLUMNS)
+            writer.writeheader()
+            for name_lower, stats in sorted(self._career_cache.items()):
+                if stats:
+                    writer.writerow({"horse_name": name_lower, **stats})
+                    count += 1
+        log.info(f"Saved {count} horses to {self._career_file}")
+
+    def _get_race_data_source(self) -> Optional[str]:
+        """Return the path to whichever file has race data, or None."""
+        for path in (self._general_file, self.output_file):
+            if os.path.exists(path) and os.path.getsize(path) > 50:
+                return path
+        return None
+
+    def _get_unique_horses_from_general(self) -> List[str]:
+        """Read unique horse names from the race data CSV."""
+        source = self._get_race_data_source()
+        if not source:
+            log.warning(f"No race data found in {self._general_file} or {self.output_file}")
+            return []
+        names = []
+        seen = set()
+        with open(source, "r", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                name = (row.get("horse_name") or "").strip()
+                if name and name.lower() not in seen:
+                    seen.add(name.lower())
+                    names.append(name)
+        return names
+
+    async def _fetch_missing_career_stats(self):
+        """Open browser and fetch career stats for horses not in cache."""
+        horse_names = self._get_unique_horses_from_general()
+        missing = [n for n in horse_names if n.lower() not in self._career_cache]
+
+        if not missing:
+            log.info(f"Career stats: all {len(horse_names)} horses already cached")
+            return
+
+        log.info(f"Career stats: fetching {len(missing)} of {len(horse_names)} horses "
+                 f"({len(horse_names) - len(missing)} cached)")
+
+        try:
+            await self._start_browser()
+            await self._setup_session()
+            context, page = await self._create_context()
+            try:
+                for i, name in enumerate(missing):
+                    await self._get_career_stats(name, page)
+                    if (i + 1) % 25 == 0 or (i + 1) == len(missing):
+                        log.info(f"  Career progress: {i + 1}/{len(missing)} "
+                                 f"({(i + 1) / len(missing) * 100:.0f}%)")
+            finally:
+                await page.close()
+                if not self._is_cdp:
+                    await context.close()
+        finally:
+            await self._stop_browser()
+
+    def _merge_final_output(self):
+        """Merge general CSV + career stats cache → final output CSV."""
+        source = self._get_race_data_source()
+        if not source:
+            log.warning(f"Cannot merge: no race data in {self._general_file} or {self.output_file}")
+            return
+
+        # If source is the output file itself, write to a temp file then rename
+        write_to_temp = (os.path.abspath(source) == os.path.abspath(self.output_file))
+        dest = self.output_file + ".tmp" if write_to_temp else self.output_file
+
+        count = 0
+        with open(source, "r", encoding="utf-8") as gen_f, \
+             open(dest, "w", newline="", encoding="utf-8") as out_f:
+            reader = csv.DictReader(gen_f)
+            writer = csv.DictWriter(out_f, fieldnames=OUTPUT_COLUMNS, extrasaction="ignore")
+            writer.writeheader()
+            for row in reader:
+                horse_key = (row.get("horse_name") or "").strip().lower()
+                stats = self._career_cache.get(horse_key, {})
+                for col in CAREER_STAT_COLUMNS:
+                    row[col] = stats.get(col, "")
+                writer.writerow(row)
+                count += 1
+
+        if write_to_temp:
+            os.replace(dest, self.output_file)
+
+        log.info(f"Merged {count} entries -> {self.output_file} "
+                 f"(career stats for {len(self._career_cache)} horses)")
 
     # ── Google search entry ──────────────────────────────────
 
@@ -1505,8 +1690,7 @@ class RaceScraper:
 
     # ── Progress reporter ─────────────────────────────────────
 
-    async def _progress_reporter(self, remaining_count: int, total: int,
-                                 skipped: int, interval: float = 60.0):
+    async def _progress_reporter(self, remaining_count: int, interval: float = 60.0):
         """Background coroutine that logs progress and ETA periodically."""
         while True:
             await asyncio.sleep(interval)
@@ -1520,7 +1704,7 @@ class RaceScraper:
             rate = completed / elapsed  # targets per second
             remaining = remaining_count - completed
             eta_seconds = remaining / rate if rate > 0 else 0
-            pct = (skipped + completed) / total * 100 if total > 0 else 0
+            pct = completed / remaining_count * 100 if remaining_count > 0 else 0
 
             if eta_seconds < 60:
                 eta_str = f"{eta_seconds:.0f}s"
@@ -1541,7 +1725,7 @@ class RaceScraper:
     # ── Per-target worker ────────────────────────────────────
 
     async def _process_race_day(self, page: Page, track: str, date: datetime,
-                                total: int, skipped: int):
+                                remaining_count: int):
         """Process a single (track, date) target using the given page."""
         date_str = date.strftime("%Y-%m-%d")
         t0 = time.perf_counter()
@@ -1564,17 +1748,13 @@ class RaceScraper:
             # Extract data
             entries = await self._extract_from_page(track, date, page)
 
-            # Optionally enrich with career stats from horse profile pages
-            if entries and self._career_stats_enabled:
-                await self._enrich_with_career_stats(entries, page)
-
             elapsed = time.perf_counter() - t0
 
             if entries:
                 self._write_entries(entries)
                 self.checkpoint.mark(track, date, len(entries))
                 self._completed_count += 1
-                pct = (skipped + self._completed_count) / total * 100
+                pct = self._completed_count / remaining_count * 100 if remaining_count > 0 else 0
 
                 # Count unique races
                 race_nums = {e.get("race_number") for e in entries}
@@ -1599,94 +1779,126 @@ class RaceScraper:
     # ── Main run loop ────────────────────────────────────────
 
     async def run(self, targets: List[Tuple[str, datetime]]):
-        """Main scraping loop. Runs up to self._concurrency workers concurrently."""
-        remaining = [(t, d) for t, d in targets if not self.checkpoint.is_done(t, d)]
-        total = len(targets)
-        skipped = total - len(remaining)
-
-        log.info(f"Targets: {total:,} total, {skipped:,} done, {len(remaining):,} remaining")
-        log.info(f"Concurrency: {self._concurrency} browser context(s)")
-
+        """Main entry point. Three phases: scrape → career stats → merge."""
         self._run_start_time = time.perf_counter()
-        self._open_csv()
-        try:
-            await self._start_browser()
-            await self._setup_session()
 
-            semaphore = asyncio.Semaphore(self._concurrency)
+        # Determine date range from targets
+        all_dates = [d for _, d in targets]
+        start_date = min(all_dates)
+        end_date = max(all_dates)
 
-            # Pool of reusable worker IDs (W1..WN) so logs show which slot is active
-            _id_pool = asyncio.Queue()
-            for _i in range(1, self._concurrency + 1):
-                _id_pool.put_nowait(_i)
+        # Load career cache from file if it exists
+        if self._career_stats_enabled:
+            self._load_career_cache_from_file()
 
-            async def worker(track, date):
-                async with semaphore:
-                    wid = await _id_pool.get()
-                    if self._concurrency > 1:
-                        _worker_id.set(f"W{wid}")
-                    context, page = await self._create_context()
+        # Check if we can skip scraping
+        skip_scraping = not self._should_scrape(start_date, end_date)
+
+        # ═══ PHASE 1: SCRAPE (if needed) ═══
+        if not skip_scraping:
+            remaining = [(t, d) for t, d in targets if not self.checkpoint.is_done(t, d)]
+            total = len(targets)
+            skipped = total - len(remaining)
+
+            log.info(f"Targets: {total:,} total, {skipped:,} done, {len(remaining):,} remaining")
+
+            if not remaining:
+                log.info("All targets already in checkpoint — skipping scrape")
+            else:
+                log.info(f"Concurrency: {self._concurrency} browser context(s)")
+
+                self._open_csv()
+                try:
+                    await self._start_browser()
+                    await self._setup_session()
+
+                    semaphore = asyncio.Semaphore(self._concurrency)
+
+                    # Pool of reusable worker IDs (W1..WN) so logs show which slot is active
+                    _id_pool = asyncio.Queue()
+                    for _i in range(1, self._concurrency + 1):
+                        _id_pool.put_nowait(_i)
+
+                    async def worker(track, date):
+                        async with semaphore:
+                            wid = await _id_pool.get()
+                            if self._concurrency > 1:
+                                _worker_id.set(f"W{wid}")
+                            context, page = await self._create_context()
+                            try:
+                                await self._process_race_day(page, track, date, len(remaining))
+                            except Exception as e:
+                                log.error(f"Worker error for {track} {date.strftime('%Y-%m-%d')}: {e}",
+                                          exc_info=True)
+                                self.checkpoint.stats["errors"] += 1
+                            finally:
+                                await page.close()
+                                if not self._is_cdp:
+                                    await context.close()
+                                _id_pool.put_nowait(wid)
+                                _worker_id.set('')
+
+                    # Start background progress reporter (every 60s)
+                    progress_task = asyncio.create_task(
+                        self._progress_reporter(len(remaining), interval=60.0)
+                    )
+
+                    # Launch all workers; semaphore limits actual concurrency
+                    results = await asyncio.gather(
+                        *[worker(t, d) for t, d in remaining],
+                        return_exceptions=True,
+                    )
+
+                    # Stop progress reporter
+                    progress_task.cancel()
                     try:
-                        await self._process_race_day(page, track, date, total, skipped)
-                    except Exception as e:
-                        log.error(f"Worker error for {track} {date.strftime('%Y-%m-%d')}: {e}",
-                                  exc_info=True)
-                        self.checkpoint.stats["errors"] += 1
-                    finally:
-                        await page.close()
-                        if not self._is_cdp:
-                            await context.close()
-                        _id_pool.put_nowait(wid)
-                        _worker_id.set('')
+                        await progress_task
+                    except asyncio.CancelledError:
+                        pass
 
-            # Start background progress reporter (every 60s)
-            progress_task = asyncio.create_task(
-                self._progress_reporter(len(remaining), total, skipped, interval=60.0)
-            )
+                    # Log any unhandled exceptions from gather
+                    for i, result in enumerate(results):
+                        if isinstance(result, Exception):
+                            track, date = remaining[i]
+                            log.error(f"Unhandled exception for {track} {date.strftime('%Y-%m-%d')}: {result}")
 
-            # Launch all workers; semaphore limits actual concurrency
-            results = await asyncio.gather(
-                *[worker(t, d) for t, d in remaining],
-                return_exceptions=True,
-            )
+                except KeyboardInterrupt:
+                    log.info("Interrupted — saving checkpoint")
+                except Exception as e:
+                    log.error(f"Fatal: {e}", exc_info=True)
+                finally:
+                    self.checkpoint.save()
+                    self._close_csv()
+                    await self._stop_browser()
 
-            # Stop progress reporter
-            progress_task.cancel()
-            try:
-                await progress_task
-            except asyncio.CancelledError:
-                pass
+                elapsed = time.perf_counter() - self._run_start_time
+                s = self.checkpoint.stats
+                throughput = s['pages'] / elapsed * 3600 if elapsed > 0 else 0
+                log.info(f"\nScrape complete | Pages: {s['pages']:,} | Entries: {s['entries']:,} | "
+                         f"PDFs: {s['pdfs']} | Errors: {s['errors']} | "
+                         f"Time: {elapsed:.0f}s | Throughput: {throughput:.0f} pages/h")
 
-            # Log any unhandled exceptions from gather
-            for i, result in enumerate(results):
-                if isinstance(result, Exception):
-                    track, date = remaining[i]
-                    log.error(f"Unhandled exception for {track} {date.strftime('%Y-%m-%d')}: {result}")
+            # Save metadata for future cache checks
+            self._save_meta(start_date, end_date)
 
-        except KeyboardInterrupt:
-            log.info("Interrupted — saving checkpoint")
-        except Exception as e:
-            log.error(f"Fatal: {e}", exc_info=True)
-        finally:
-            self.checkpoint.save()
-            self._close_csv()
-            await self._stop_browser()
+        # ═══ PHASE 2: CAREER STATS (if enabled) ═══
+        if self._career_stats_enabled:
+            await self._fetch_missing_career_stats()
+            self._save_career_cache_to_file()
 
-            elapsed = time.perf_counter() - self._run_start_time
-            s = self.checkpoint.stats
-            throughput = s['pages'] / elapsed * 3600 if elapsed > 0 else 0
-            log.info(f"\n{'='*50}")
-            log.info(f"DONE | Pages: {s['pages']:,} | Entries: {s['entries']:,} | "
-                     f"PDFs: {s['pdfs']} | Errors: {s['errors']}")
-            log.info(f"Time: {elapsed:.0f}s ({elapsed/3600:.1f}h) | "
-                     f"Throughput: {throughput:.0f} pages/h")
-            if self._career_stats_enabled:
-                total_lookups = self._career_hit + self._career_miss
-                hit_rate = (self._career_hit / total_lookups * 100) if total_lookups > 0 else 0
-                log.info(f"Career stats | {len(self._career_cache)} unique horses | "
-                         f"cache hit rate: {hit_rate:.0f}% ({self._career_hit}/{total_lookups})")
-            log.info(f"Output: {self.output_file}")
-            log.info(f"{'='*50}")
+        # ═══ PHASE 3: MERGE → final output ═══
+        self._merge_final_output()
+
+        elapsed = time.perf_counter() - self._run_start_time
+        log.info(f"\n{'='*50}")
+        if self._career_stats_enabled:
+            total_lookups = self._career_hit + self._career_miss
+            hit_rate = (self._career_hit / total_lookups * 100) if total_lookups > 0 else 0
+            log.info(f"Career stats | {len(self._career_cache)} unique horses | "
+                     f"cache hit rate: {hit_rate:.0f}% ({self._career_hit}/{total_lookups})")
+        log.info(f"Total time: {elapsed:.0f}s ({elapsed/3600:.1f}h)")
+        log.info(f"Output: {self.output_file}")
+        log.info(f"{'='*50}")
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -1742,7 +1954,7 @@ Examples:
     p.add_argument("--resume", action="store_true")
     p.add_argument("--list-tracks", action="store_true")
     p.add_argument("--checkpoint", default="scraper_v3_checkpoint.json",
-                   help="Checkpoint file path (use a separate file for isolated runs)")
+                   help="Checkpoint file path, or RESET to delete and start fresh")
     p.add_argument("--career-stats", action="store_true",
                    help="After parsing each race day, enrich entries with career stats "
                         "(num_past_starts/wins/seconds/thirds) from horse profile pages. "
@@ -1752,6 +1964,10 @@ Examples:
                         "Use 4 for ~3-4x speedup. Beyond 8 risks rate limiting.")
     p.add_argument("--targets-file",
                    help="JSON file with [[track, date], ...] targets (used by launcher)")
+    p.add_argument("--min-rescrape-days", type=int, default=7,
+                   help="Minimum new days beyond cached range to trigger re-scrape "
+                        "(default: 7). If the cached general CSV covers the requested "
+                        "range within this threshold, scraping is skipped.")
     p.add_argument("-v", "--verbose", action="store_true",
                    help="Show detailed output: per-horse career lookups, race metadata, "
                         "entry rosters, timing per race day, cache hit rates, "
@@ -1803,6 +2019,20 @@ Examples:
         f"| Est: {est_hours:.1f}h"
     )
 
+    if args.checkpoint.upper() == "RESET":
+        args.checkpoint = "scraper_v3_checkpoint.json"
+        base, ext = os.path.splitext(args.output)
+        to_remove = [
+            args.checkpoint,
+            f"{base}_general{ext}",
+            f"{base}_career_stats{ext}",
+            f"{base}_meta.json",
+        ]
+        for f in to_remove:
+            if os.path.exists(f):
+                os.remove(f)
+                log.info(f"Reset: removed {f}")
+
     scraper = RaceScraper(
         output_file=args.output,
         headless=not args.visible,
@@ -1811,6 +2041,7 @@ Examples:
         checkpoint_path=args.checkpoint,
         career_stats=args.career_stats,
         concurrency=args.concurrency,
+        min_rescrape_days=args.min_rescrape_days,
     )
     asyncio.run(scraper.run(targets))
 
