@@ -4,6 +4,7 @@ training_data.csv
 
 # Output directories
 race_predictions/
+debug-output/
 
 # Python
 __pycache__/
