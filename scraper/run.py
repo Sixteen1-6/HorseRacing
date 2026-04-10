@@ -36,10 +36,14 @@ Usage:
 
   # Full 10-year scrape
   python3 -m scraper --start 2016-01-01 --end 2026-04-04
+
+  # Concurrent scraping (4 browser contexts)
+  python3 -m scraper --start 2024-01-01 --end 2024-12-31 --concurrency 4
 """
 
 import asyncio
 import csv
+import json
 import os
 import re
 import random
@@ -108,7 +112,9 @@ class RaceScraper:
     # Format: /static/chart/{YEAR}/usa/{track_lower}/{YYYYMMDD}-usa-{track_lower}-{race_num}-d.standard.pdf
     PDF_CHART_HISTORICAL_URL = "https://www.equibase.com/static/chart/{year}/usa/{track_lower}/{date_ymd}-usa-{track_lower}-{race_num}-d.standard.pdf"
 
-    def __init__(self, output_file="historical_races.csv", headless=True, use_google=True, cdp_port=9222, checkpoint_path="scraper_v3_checkpoint.json", career_stats=False, concurrency=1):
+    def __init__(self, output_file="historical_races.csv", headless=True, use_google=True,
+                 cdp_port=9222, checkpoint_path="scraper_v3_checkpoint.json",
+                 career_stats=False, concurrency=1):
         self.output_file = output_file
         self.headless = headless
         self._use_google = use_google
@@ -295,13 +301,13 @@ class RaceScraper:
 
         log.warning("Timed out waiting for sign-in (2 min). Continuing anyway...")
 
-    async def _pass_bot_detection(self):
+    async def _pass_bot_detection(self, page: Page):
         """Navigate to Equibase and let the user solve any captcha."""
         log.info("Opening equibase.com to check for bot detection...")
-        await self.page.goto("https://www.equibase.com", wait_until="domcontentloaded", timeout=20000)
+        await page.goto("https://www.equibase.com", wait_until="domcontentloaded", timeout=20000)
         await asyncio.sleep(3)
 
-        text = await self.page.inner_text("body")
+        text = await page.inner_text("body")
         bot_phrases = ["security check", "captcha", "i am human", "pardon our interruption"]
         if any(p in text.lower() for p in bot_phrases):
             log.info("=" * 50)
@@ -314,7 +320,7 @@ class RaceScraper:
             for i in range(40):
                 await asyncio.sleep(3)
                 try:
-                    text = await self.page.inner_text("body")
+                    text = await page.inner_text("body")
                     if not any(p in text.lower() for p in bot_phrases):
                         log.info("Captcha solved! Continuing scraper...")
                         await asyncio.sleep(2)
@@ -358,8 +364,6 @@ class RaceScraper:
     async def _stop_browser(self):
         if self.browser:
             await self.browser.close()
-        elif self.context:
-            await self.context.close()
         if self.pw:
             await self.pw.stop()
 
@@ -374,30 +378,30 @@ class RaceScraper:
     # index HTML page (eqbPDFChartPlusIndex.cfm) which embeds
     # /profiles/Results.cfm?type=Horse&refno=... links for each runner.
 
-    async def _fetch_horse_career_by_name(self, horse_name: str) -> Dict:
+    async def _fetch_horse_career_by_name(self, horse_name: str, page: Page) -> Dict:
         """Search Equibase by horse name via the homepage form and parse the
         career stats block from whatever page lands. Returns {} on failure."""
         result: Dict = {}
         try:
-            await self.page.goto("https://www.equibase.com/", wait_until="domcontentloaded", timeout=20000)
+            await page.goto("https://www.equibase.com/", wait_until="domcontentloaded", timeout=20000)
             await asyncio.sleep(0.5)
-            await self.page.fill("input[name='searchInput']", horse_name)
+            await page.fill("input[name='searchInput']", horse_name)
             # Click the submit button (JS-driven form → direct profile page for unique matches)
             try:
-                await self.page.click("form button[type='submit'], form input[type='submit']", timeout=3000)
+                await page.click("form button[type='submit'], form input[type='submit']", timeout=3000)
             except Exception:
-                await self.page.press("input[name='searchInput']", "Enter")
-            await self.page.wait_for_load_state("domcontentloaded", timeout=15000)
+                await page.press("input[name='searchInput']", "Enter")
+            await page.wait_for_load_state("domcontentloaded", timeout=15000)
             await asyncio.sleep(0.8)
 
-            landed = self.page.url
+            landed = page.url
             # Case A: direct hit — we're on a horse profile page already.
             if "type=Horse" in landed and "refno=" in landed:
-                result = await self._parse_career_from_profile()
+                result = await self._parse_career_from_profile(page)
                 return result
 
             # Case B: multi-match search result — click the first TB match.
-            profile_href = await self.page.evaluate(
+            profile_href = await page.evaluate(
                 r"""
                 () => {
                     const links = Array.from(document.querySelectorAll('a[href*="type=Horse"]'))
@@ -409,21 +413,21 @@ class RaceScraper:
                 """
             )
             if profile_href:
-                await self.page.goto(profile_href, wait_until="domcontentloaded", timeout=20000)
+                await page.goto(profile_href, wait_until="domcontentloaded", timeout=20000)
                 await asyncio.sleep(0.8)
-                result = await self._parse_career_from_profile()
+                result = await self._parse_career_from_profile(page)
         except Exception as e:
             log.debug(f"career search failed for {horse_name!r}: {e}")
         return result
 
-    async def _parse_career_from_profile(self) -> Dict:
+    async def _parse_career_from_profile(self, page: Page) -> Dict:
         """Extract career totals from the currently-loaded horse profile page.
         Tries DOM tables first, then falls back to body-text regex because
         Equibase sometimes renders the block as a flex layout without a
         standards-compliant table header row."""
         # Attempt 1: table with canonical header
         try:
-            data = await self.page.evaluate(
+            data = await page.evaluate(
                 r"""
                 () => {
                     const tables = Array.from(document.querySelectorAll('table'))
@@ -462,7 +466,7 @@ class RaceScraper:
         # Attempt 2: body-text regex. On Fierceness's profile the text had the form
         #   "CAREER STATISTICS*\nStarts\tFirsts\tSeconds\tThirds\tEarnings\n14\t7\t2\t2"
         try:
-            body = await self.page.evaluate("() => document.body.innerText || ''")
+            body = await page.evaluate("() => document.body.innerText || ''")
             m = re.search(
                 r"CAREER\s+STATISTICS\*?[\s\S]{0,200}?"
                 r"Starts\s+Firsts\s+Seconds\s+Thirds\s+Earnings\s+"
@@ -480,9 +484,36 @@ class RaceScraper:
             pass
         return {}
 
-    async def _enrich_with_career_stats(self, entries: List[Dict]):
+    async def _get_career_stats(self, name: str, page: Page) -> Dict:
+        """Fetch career stats with per-horse locking to avoid redundant fetches
+        when multiple concurrent workers encounter the same horse."""
+        key = name.lower()
+
+        # Fast path: already cached
+        if key in self._career_cache:
+            self._career_hit += 1
+            return self._career_cache[key]
+
+        # Get or create a lock for this horse
+        async with self._career_lock_creation:
+            if key not in self._career_locks:
+                self._career_locks[key] = asyncio.Lock()
+            lock = self._career_locks[key]
+
+        # Acquire the per-horse lock; double-check cache after acquiring
+        async with lock:
+            if key in self._career_cache:
+                self._career_hit += 1
+                return self._career_cache[key]
+            self._career_miss += 1
+            stats = await self._fetch_horse_career_by_name(name, page)
+            self._career_cache[key] = stats
+            await self.human.random_delay(0.4, 1.0)
+            return stats
+
+    async def _enrich_with_career_stats(self, entries: List[Dict], page: Page):
         """Populate career fields on each entry by searching each unique horse
-        by name and parsing the profile. Cached across the run."""
+        by name and parsing the profile. Cached across the run with per-horse locking."""
         if not self._career_stats_enabled or not entries:
             return
 
@@ -500,14 +531,7 @@ class RaceScraper:
 
         for name in unique_names:
             key = name.lower()
-            if key in self._career_cache:
-                self._career_hit += 1
-                stats = self._career_cache[key]
-            else:
-                self._career_miss += 1
-                stats = await self._fetch_horse_career_by_name(name)
-                self._career_cache[key] = stats
-                await self.human.random_delay(0.4, 1.0)
+            stats = await self._get_career_stats(name, page)
 
             if stats:
                 for e in entries:
@@ -539,18 +563,18 @@ class RaceScraper:
 
     # ── Google search entry ──────────────────────────────────
 
-    async def _google_search(self, query: str) -> Optional[str]:
+    async def _google_search(self, query: str, page: Page) -> Optional[str]:
         """
         Search Google and return the first Equibase result URL.
         Returns None if no result found.
         """
         try:
-            await self.page.goto("https://www.google.com", wait_until="domcontentloaded", timeout=15000)
+            await page.goto("https://www.google.com", wait_until="domcontentloaded", timeout=15000)
             await self.human.random_delay(1.5, 3.0)
 
             # Accept cookies if prompted
             try:
-                accept_btn = self.page.locator("button:has-text('Accept'), button:has-text('I agree')")
+                accept_btn = page.locator("button:has-text('Accept'), button:has-text('I agree')")
                 if await accept_btn.count() > 0:
                     await accept_btn.first.click()
                     await self.human.random_delay(1.0, 2.0)
@@ -558,22 +582,22 @@ class RaceScraper:
                 pass
 
             # Type the search query like a human
-            search_box = self.page.locator('textarea[name="q"], input[name="q"]').first
+            search_box = page.locator('textarea[name="q"], input[name="q"]').first
             await search_box.click()
             await asyncio.sleep(random.uniform(0.3, 0.8))
 
             for char in query:
-                await self.page.keyboard.type(char, delay=random.randint(40, 180))
+                await page.keyboard.type(char, delay=random.randint(40, 180))
                 if random.random() < 0.03:
                     await asyncio.sleep(random.uniform(0.2, 0.6))
 
             await asyncio.sleep(random.uniform(0.5, 1.5))
-            await self.page.keyboard.press("Enter")
-            await self.page.wait_for_load_state("domcontentloaded")
+            await page.keyboard.press("Enter")
+            await page.wait_for_load_state("domcontentloaded")
             await self.human.random_delay(1.2, 2.5)
 
             # Find Equibase links in results
-            links = await self.page.evaluate("""
+            links = await page.evaluate("""
                 () => {
                     const results = [];
                     document.querySelectorAll('a[href]').forEach(a => {
@@ -601,7 +625,7 @@ class RaceScraper:
 
     # ── Navigate to race day ─────────────────────────────────
 
-    async def _navigate_to_race_day(self, track_code: str, date: datetime) -> bool:
+    async def _navigate_to_race_day(self, track_code: str, date: datetime, page: Page) -> bool:
         """
         Navigate to race day results.
         Order: Direct summary URL first → Chart index → Google (last resort).
@@ -613,18 +637,18 @@ class RaceScraper:
 
         # Helper to check if a page loaded successfully
         async def _check_page(label: str) -> bool:
-            landed_url = self.page.url
+            landed_url = page.url
             log.info(f"{label} -> landed on: {landed_url}")
-            text = await self.page.inner_text("body")
+            text = await page.inner_text("body")
             text_preview = text[:200].replace('\n', ' ').strip()
 
             # Handle bot detection — wait and retry once
             if "Pardon Our Interruption" in text:
                 log.info(f"{label}: Bot detection triggered, waiting 10s and reloading...")
                 await asyncio.sleep(10)
-                await self.page.reload(wait_until="domcontentloaded", timeout=15000)
+                await page.reload(wait_until="domcontentloaded", timeout=15000)
                 await self.human.random_delay(3.0, 5.0)
-                text = await self.page.inner_text("body")
+                text = await page.inner_text("body")
                 text_preview = text[:200].replace('\n', ' ').strip()
                 if "Pardon Our Interruption" in text:
                     log.warning(f"{label}: Bot detection persists after retry")
@@ -646,7 +670,7 @@ class RaceScraper:
         chart_embed_url = f"https://www.equibase.com/premium/chartEmb.cfm?track={track_code}&raceDate={date.strftime('%m/%d/%Y')}&cy=USA"
         log.info(f"Trying premium chart embed: {chart_embed_url}")
         try:
-            await self.page.goto(chart_embed_url, wait_until="domcontentloaded", timeout=15000)
+            await page.goto(chart_embed_url, wait_until="domcontentloaded", timeout=15000)
             await self.human.random_delay(1.2, 2.5)
             if await _check_page("Premium chart embed"):
                 return True
@@ -659,7 +683,7 @@ class RaceScraper:
         )
         log.info(f"Trying premium chart index: {index_url}")
         try:
-            await self.page.goto(index_url, wait_until="domcontentloaded", timeout=15000)
+            await page.goto(index_url, wait_until="domcontentloaded", timeout=15000)
             await self.human.random_delay(1.2, 2.5)
             if await _check_page("Premium chart index"):
                 return True
@@ -670,12 +694,12 @@ class RaceScraper:
         if self._use_google:
             query = f"{track_name} {date_str} race results equibase"
             log.info(f"Falling back to Google: {query}")
-            url = await self._google_search(query)
+            url = await self._google_search(query, page)
 
             if url:
                 log.info(f"Google found: {url}")
                 try:
-                    link_clicked = await self.page.evaluate("""
+                    link_clicked = await page.evaluate("""
                         () => {
                             const links = document.querySelectorAll('a[href]');
                             for (const a of links) {
@@ -689,18 +713,18 @@ class RaceScraper:
                     """)
 
                     if link_clicked:
-                        await self.page.wait_for_load_state("domcontentloaded", timeout=15000)
+                        await page.wait_for_load_state("domcontentloaded", timeout=15000)
                         await self.human.random_delay(1.2, 2.5)
-                        landed_url = self.page.url
+                        landed_url = page.url
                         log.info(f"Google -> landed on: {landed_url}")
-                        text = await self.page.inner_text("body")
+                        text = await page.inner_text("body")
                         if not self._page_has_no_data(text):
                             return True
                 except Exception as e:
                     log.debug(f"Google click-through failed: {e}")
 
                     # If Google CAPTCHA'd us, disable Google for the rest of the run
-                    page_text = await self.page.inner_text("body")
+                    page_text = await page.inner_text("body")
                     if "unusual traffic" in page_text.lower() or "captcha" in page_text.lower():
                         log.warning("Google CAPTCHA detected — disabling Google search for this run")
                         self._use_google = False
@@ -724,7 +748,7 @@ class RaceScraper:
 
     # ── Extract race data from current page ──────────────────
 
-    async def _extract_from_page(self, track_code: str, date: datetime) -> List[Dict]:
+    async def _extract_from_page(self, track_code: str, date: datetime, page: Page) -> List[Dict]:
         """
         Extract race data from the current page.
         Tries multiple strategies:
@@ -734,11 +758,11 @@ class RaceScraper:
         """
         entries = []
         race_date_str = date.strftime("%m/%d/%Y")
-        current_url = self.page.url
+        current_url = page.url
         log.info(f"Extracting from: {current_url}")
 
         # ── Strategy 1: Look for PDF chart links ──
-        pdf_links = await self.page.evaluate("""
+        pdf_links = await page.evaluate("""
             () => {
                 const links = [];
                 document.querySelectorAll('a[href]').forEach(a => {
@@ -760,7 +784,7 @@ class RaceScraper:
                 log.info(f"Found {len(real_pdf_links)} direct PDF chart links")
                 for link_info in real_pdf_links:
                     href = link_info["href"]
-                    pdf_entries = await self._download_and_parse_pdf(href, track_code, race_date_str)
+                    pdf_entries = await self._download_and_parse_pdf(href, track_code, race_date_str, page)
                     if pdf_entries:
                         entries.extend(pdf_entries)
                         self.checkpoint.stats["pdfs"] += 1
@@ -774,7 +798,7 @@ class RaceScraper:
         if not entries and pdfplumber:
             # eqbPDFChartPlus.cfm redirects directly to the PDF file
             chart_base = f"https://www.equibase.com/premium/eqbPDFChartPlus.cfm?BorP=P&TID={track_code}&CTRY=USA&DT={date.strftime('%m/%d/%Y')}&DAY=D&STYLE=EQB"
-            saved_url = self.page.url
+            saved_url = page.url
             consecutive_failures = 0
 
             log.info(f"Trying chart PDF download strategy with base: {chart_base}")
@@ -784,7 +808,7 @@ class RaceScraper:
                 try:
                     # Use page.request API to download the PDF bytes directly
                     # This avoids the "Download is starting" navigation error
-                    response = await self.page.request.get(chart_url, timeout=30000)
+                    response = await page.request.get(chart_url, timeout=30000)
                     status = response.status
                     content_type = response.headers.get("content-type", "")
                     pdf_bytes = await response.body()
@@ -824,7 +848,7 @@ class RaceScraper:
             else:
                 # Navigate back for further strategies
                 try:
-                    await self.page.goto(saved_url, wait_until="domcontentloaded", timeout=15000)
+                    await page.goto(saved_url, wait_until="domcontentloaded", timeout=15000)
                 except Exception:
                     pass
 
@@ -845,7 +869,7 @@ class RaceScraper:
             working_pattern = None
             for test_url in test_urls:
                 log.info(f"Testing PDF URL: {test_url}")
-                test_entries = await self._download_and_parse_pdf(test_url, track_code, race_date_str)
+                test_entries = await self._download_and_parse_pdf(test_url, track_code, race_date_str, page)
                 if test_entries:
                     entries.extend(test_entries)
                     self.checkpoint.stats["pdfs"] += 1
@@ -856,7 +880,7 @@ class RaceScraper:
             if working_pattern:
                 for race_num in range(2, 16):
                     pdf_url = working_pattern.format(race_num=race_num)
-                    pdf_entries = await self._download_and_parse_pdf(pdf_url, track_code, race_date_str)
+                    pdf_entries = await self._download_and_parse_pdf(pdf_url, track_code, race_date_str, page)
                     if pdf_entries:
                         entries.extend(pdf_entries)
                         self.checkpoint.stats["pdfs"] += 1
@@ -869,7 +893,7 @@ class RaceScraper:
 
         # ── Strategy 2: Parse HTML tables on current page ──
         if not entries:
-            entries = await self._parse_html_tables(track_code, race_date_str)
+            entries = await self._parse_html_tables(track_code, race_date_str, page)
             if entries:
                 log.info(f"HTML table parsing found {len(entries)} entries")
             else:
@@ -883,7 +907,7 @@ class RaceScraper:
             if "RaceCardIndex" in current_url:
                 # Try clicking "View All Races" link
                 try:
-                    view_all_url = await self.page.evaluate(r"""
+                    view_all_url = await page.evaluate(r"""
                         () => {
                             const link = document.querySelector('a[href*="EQB.html"]:not([href*="RaceCardIndex"])');
                             return link ? link.href : null;
@@ -891,9 +915,9 @@ class RaceScraper:
                     """)
                     if view_all_url:
                         log.info(f"Clicking 'View All Races': {view_all_url}")
-                        await self.page.goto(view_all_url, wait_until="domcontentloaded", timeout=15000)
+                        await page.goto(view_all_url, wait_until="domcontentloaded", timeout=15000)
                         await self.human.random_delay(1.2, 2.5)
-                        entries = await self._parse_html_tables(track_code, race_date_str)
+                        entries = await self._parse_html_tables(track_code, race_date_str, page)
                 except Exception as e:
                     log.debug(f"View All Races click failed: {e}")
 
@@ -903,10 +927,10 @@ class RaceScraper:
                 if summary_url not in current_url:
                     log.info(f"Trying Equibase summary page: {summary_url}")
                     try:
-                        await self.page.goto(summary_url, wait_until="domcontentloaded", timeout=15000)
+                        await page.goto(summary_url, wait_until="domcontentloaded", timeout=15000)
                         await self.human.random_delay(1.2, 2.5)
-                        log.info(f"Summary page landed on: {self.page.url}")
-                        entries = await self._parse_html_tables(track_code, race_date_str)
+                        log.info(f"Summary page landed on: {page.url}")
+                        entries = await self._parse_html_tables(track_code, race_date_str, page)
                         if entries:
                             log.info(f"Summary page parsing found {len(entries)} entries")
                     except Exception as e:
@@ -914,7 +938,7 @@ class RaceScraper:
 
         # ── Strategy 4: Click into individual race links ──
         if not entries:
-            race_links = await self.page.evaluate(r"""
+            race_links = await page.evaluate(r"""
                 () => {
                     const links = [];
                     document.querySelectorAll('a[href]').forEach(a => {
@@ -933,31 +957,31 @@ class RaceScraper:
                 log.info(f"Found {len(race_links)} race links to click into")
             for link_info in race_links[:15]:  # max 15 races per card
                 try:
-                    await self.page.goto(link_info["href"],
+                    await page.goto(link_info["href"],
                                          wait_until="domcontentloaded", timeout=15000)
                     await self.human.random_delay(1.2, 2.5)
-                    await self.human.random_scroll(self.page)
+                    await self.human.random_scroll(page)
 
-                    race_entries = await self._parse_html_tables(track_code, race_date_str)
+                    race_entries = await self._parse_html_tables(track_code, race_date_str, page)
                     entries.extend(race_entries)
 
-                    await self.page.go_back(wait_until="domcontentloaded", timeout=10000)
+                    await page.go_back(wait_until="domcontentloaded", timeout=10000)
                     await self.human.random_delay(1.5, 3.0)
                 except Exception as e:
                     log.debug(f"Race link click failed: {e}")
 
         if not entries:
             # Dump page diagnostics for debugging
-            await self._dump_page_diagnostics()
+            await self._dump_page_diagnostics(page)
 
         return entries
 
-    async def _dump_page_diagnostics(self):
+    async def _dump_page_diagnostics(self, page: Page):
         """Log diagnostic info about current page to help debug parsing failures."""
         try:
-            url = self.page.url
-            title = await self.page.title()
-            table_info = await self.page.evaluate("""
+            url = page.url
+            title = await page.title()
+            table_info = await page.evaluate("""
                 () => {
                     const tables = document.querySelectorAll('table');
                     return Array.from(tables).map((t, i) => ({
@@ -978,11 +1002,11 @@ class RaceScraper:
         except Exception as e:
             log.debug(f"Page diagnostics failed: {e}")
 
-    async def _download_and_parse_pdf(self, url: str, track_code: str, race_date: str) -> List[Dict]:
+    async def _download_and_parse_pdf(self, url: str, track_code: str, race_date: str, page: Page) -> List[Dict]:
         """Download a PDF and parse it. Validates response is actually a PDF."""
         try:
             # Use page context to download (maintains cookies/session)
-            response = await self.page.request.get(url, timeout=30000)
+            response = await page.request.get(url, timeout=30000)
             if response.status != 200:
                 log.debug(f"PDF download HTTP {response.status}: {url}")
                 return []
@@ -1008,10 +1032,10 @@ class RaceScraper:
             log.debug(f"PDF download failed: {e}")
             return []
 
-    async def _parse_html_tables(self, track_code: str, race_date: str) -> List[Dict]:
+    async def _parse_html_tables(self, track_code: str, race_date: str, page: Page) -> List[Dict]:
         """Parse race results from HTML tables on the current page."""
         # Grab tables WITH their preceding context (race headers above tables)
-        raw_tables = await self.page.evaluate("""
+        raw_tables = await page.evaluate("""
             () => {
                 const results = [];
                 document.querySelectorAll('table').forEach(table => {
@@ -1030,7 +1054,7 @@ class RaceScraper:
         """)
 
         # Also grab surrounding text for race metadata
-        page_text = await self.page.inner_text("body")
+        page_text = await page.inner_text("body")
 
         entries = []
         for table in (raw_tables or []):
@@ -1039,11 +1063,11 @@ class RaceScraper:
 
         # If generic parsing found nothing, try Equibase-specific summary parsing
         if not entries:
-            entries = await self._parse_equibase_summary(track_code, race_date, page_text)
+            entries = await self._parse_equibase_summary(track_code, race_date, page_text, page)
 
         return entries
 
-    async def _parse_equibase_summary(self, track_code: str, race_date: str, page_text: str) -> List[Dict]:
+    async def _parse_equibase_summary(self, track_code: str, race_date: str, page_text: str, page: Page) -> List[Dict]:
         """
         Parse Equibase summary results pages.
 
@@ -1076,7 +1100,7 @@ class RaceScraper:
         entries = []
 
         # Use JavaScript to extract structured race data matching actual Equibase layout
-        race_data = await self.page.evaluate(r"""
+        race_data = await page.evaluate(r"""
             () => {
                 const races = [];
 
@@ -1336,59 +1360,96 @@ class RaceScraper:
             meta["race_type"] = type_m.group(1)
         return meta
 
+    # ── Per-target worker ────────────────────────────────────
+
+    async def _process_race_day(self, page: Page, track: str, date: datetime,
+                                total: int, skipped: int):
+        """Process a single (track, date) target using the given page."""
+        date_str = date.strftime("%Y-%m-%d")
+
+        # Occasional distraction browsing (~5% of the time)
+        if random.random() < 0.05:
+            await self.human.browse_distraction(page)
+
+        # Navigate to race day
+        has_data = await self._navigate_to_race_day(track, date, page)
+
+        if has_data:
+            # Human-like: scroll around, look at the page
+            await self.human.random_scroll(page)
+            await self.human.random_mouse_move(page)
+
+            # Extract data
+            entries = await self._extract_from_page(track, date, page)
+
+            # Optionally enrich with career stats from horse profile pages
+            if entries and self._career_stats_enabled:
+                await self._enrich_with_career_stats(entries, page)
+
+            if entries:
+                self._write_entries(entries)
+                self.checkpoint.mark(track, date, len(entries))
+                self._completed_count += 1
+                pct = (skipped + self._completed_count) / total * 100
+                log.info(
+                    f"[{pct:.1f}%] {track} {date_str}: {len(entries)} entries "
+                    f"(total: {self.checkpoint.stats['entries']:,})"
+                )
+            else:
+                self.checkpoint.mark(track, date, 0)
+                self._completed_count += 1
+                log.debug(f"{track} {date_str}: page found but no parseable data")
+        else:
+            self.checkpoint.mark(track, date, 0)
+            self._completed_count += 1
+            log.debug(f"{track} {date_str}: no racing")
+
+        # Variable delay between pages
+        await self.human.random_delay(1.5, 3.5)
+
     # ── Main run loop ────────────────────────────────────────
 
     async def run(self, targets: List[Tuple[str, datetime]]):
-        """Main scraping loop."""
+        """Main scraping loop. Runs up to self._concurrency workers concurrently."""
         remaining = [(t, d) for t, d in targets if not self.checkpoint.is_done(t, d)]
         total = len(targets)
         skipped = total - len(remaining)
 
         log.info(f"Targets: {total:,} total, {skipped:,} done, {len(remaining):,} remaining")
+        log.info(f"Concurrency: {self._concurrency} browser context(s)")
 
         self._open_csv()
         try:
             await self._start_browser()
+            await self._setup_session()
 
-            for i, (track, date) in enumerate(remaining):
-                pct = (skipped + i) / total * 100
-                date_str = date.strftime("%Y-%m-%d")
+            semaphore = asyncio.Semaphore(self._concurrency)
 
-                # Occasional distraction browsing (~5% of the time)
-                if random.random() < 0.05:
-                    await self.human.browse_distraction(self.page)
+            async def worker(track, date):
+                async with semaphore:
+                    context, page = await self._create_context()
+                    try:
+                        await self._process_race_day(page, track, date, total, skipped)
+                    except Exception as e:
+                        log.error(f"Worker error for {track} {date.strftime('%Y-%m-%d')}: {e}",
+                                  exc_info=True)
+                        self.checkpoint.stats["errors"] += 1
+                    finally:
+                        await page.close()
+                        if not self._is_cdp:
+                            await context.close()
 
-                # Navigate to race day
-                has_data = await self._navigate_to_race_day(track, date)
+            # Launch all workers; semaphore limits actual concurrency
+            results = await asyncio.gather(
+                *[worker(t, d) for t, d in remaining],
+                return_exceptions=True,
+            )
 
-                if has_data:
-                    # Human-like: scroll around, look at the page
-                    await self.human.random_scroll(self.page)
-                    await self.human.random_mouse_move(self.page)
-
-                    # Extract data
-                    entries = await self._extract_from_page(track, date)
-
-                    # Optionally enrich with career stats from horse profile pages
-                    if entries and self._career_stats_enabled:
-                        await self._enrich_with_career_stats(entries)
-
-                    if entries:
-                        self._write_entries(entries)
-                        self.checkpoint.mark(track, date, len(entries))
-                        log.info(
-                            f"[{pct:.1f}%] {track} {date_str}: {len(entries)} entries "
-                            f"(total: {self.checkpoint.stats['entries']:,})"
-                        )
-                    else:
-                        self.checkpoint.mark(track, date, 0)
-                        log.debug(f"[{pct:.1f}%] {track} {date_str}: page found but no parseable data")
-                else:
-                    self.checkpoint.mark(track, date, 0)
-                    log.debug(f"[{pct:.1f}%] {track} {date_str}: no racing")
-
-                # Variable delay between pages
-                await self.human.random_delay(1.5, 3.5)
+            # Log any unhandled exceptions from gather
+            for i, result in enumerate(results):
+                if isinstance(result, Exception):
+                    track, date = remaining[i]
+                    log.error(f"Unhandled exception for {track} {date.strftime('%Y-%m-%d')}: {result}")
 
         except KeyboardInterrupt:
             log.info("Interrupted — saving checkpoint")
@@ -1414,6 +1475,18 @@ class RaceScraper:
 # CLI
 # ═══════════════════════════════════════════════════════════════
 
+def _generate_targets(start_date, end_date, track_codes):
+    """Generate (track, date) targets filtered by race-day calendar."""
+    targets = []
+    d = start_date
+    while d <= end_date:
+        for t in track_codes:
+            if is_race_day(t, d):
+                targets.append((t, d))
+        d += timedelta(days=1)
+    return targets
+
+
 def main():
     p = argparse.ArgumentParser(
         description="Scrape 10 years of horse racing data via Google → Equibase",
@@ -1426,11 +1499,14 @@ Examples:
   # One month of Keeneland
   python3 -m scraper --tracks KEE --start 2023-04-01 --end 2023-04-30
 
+  # Concurrent scraping with 4 browser contexts
+  python3 -m scraper --tracks KEE --start 2023-04-01 --end 2023-04-30 --concurrency 4
+
   # Top 5 tracks, full 10 years
   python3 -m scraper --tracks KEE,CD,GP,SA,SAR --start 2016-01-01 --end 2026-04-04
 
   # All tracks, full decade (run in background)
-  nohup python3 scraper_v3.py --start 2016-01-01 --end 2026-04-04 &
+  nohup python3 -m scraper --start 2016-01-01 --end 2026-04-04 &
 
   # Resume after interruption
   python3 -m scraper --resume
@@ -1453,6 +1529,11 @@ Examples:
                    help="After parsing each race day, enrich entries with career stats "
                         "(num_past_starts/wins/seconds/thirds) from horse profile pages. "
                         "Slower — adds ~1s per unique horse — but populates those fields.")
+    p.add_argument("--concurrency", type=int, default=1,
+                   help="Number of concurrent browser contexts (default: 1). "
+                        "Use 4 for ~3-4x speedup. Beyond 8 risks rate limiting.")
+    p.add_argument("--targets-file",
+                   help="JSON file with [[track, date], ...] targets (used by launcher)")
 
     args = p.parse_args()
 
@@ -1461,40 +1542,34 @@ Examples:
             print(f"  {code:<6} {name}")
         return
 
-    if args.resume and not args.start:
+    if args.targets_file:
+        # Load targets from JSON file (used by multi-process launcher)
+        with open(args.targets_file) as f:
+            raw = json.load(f)
+        targets = [(t, datetime.strptime(d, "%Y-%m-%d")) for t, d in raw]
+    elif args.resume and not args.start:
         cp = Checkpoint(args.checkpoint)
         if not cp.done:
             p.error("No checkpoint found. Use --start and --end.")
         dates = [datetime.strptime(k.split("_")[1], "%Y%m%d") for k in cp.done]
         tracks_seen = list({k.split("_")[0] for k in cp.done})
         start_date, end_date = min(dates), max(dates) + timedelta(days=30)
-        track_codes = tracks_seen
+        targets = _generate_targets(start_date, end_date, tracks_seen)
     else:
         if not args.start or not args.end:
             p.error("Use --start and --end (or --resume)")
         start_date = datetime.strptime(args.start, "%Y-%m-%d")
         end_date = datetime.strptime(args.end, "%Y-%m-%d")
         track_codes = args.tracks.split(",") if args.tracks else list(TRACKS.keys())
-
-    # Generate targets — pre-filter by track meet calendar to skip non-race days
-    targets = []
-    skipped = 0
-    d = start_date
-    while d <= end_date:
-        for t in track_codes:
-            if is_race_day(t, d):
-                targets.append((t, d))
-            else:
-                skipped += 1
-        d += timedelta(days=1)
+        targets = _generate_targets(start_date, end_date, track_codes)
 
     # Shuffle to avoid hammering one track consecutively
     random.shuffle(targets)
 
-    est_hours = len(targets) * 4.0 / 3600
+    est_hours = len(targets) * 4.0 / 3600 / max(1, args.concurrency)
     log.info(
-        f"Targets: {len(targets):,} (filtered out {skipped:,} non-race days) "
-        f"| Est: {est_hours:.1f}h | Tracks: {len(track_codes)}"
+        f"Targets: {len(targets):,} | Concurrency: {args.concurrency} "
+        f"| Est: {est_hours:.1f}h"
     )
 
     scraper = RaceScraper(
@@ -1504,6 +1579,7 @@ Examples:
         cdp_port=args.cdp_port,
         checkpoint_path=args.checkpoint,
         career_stats=args.career_stats,
+        concurrency=args.concurrency,
     )
     asyncio.run(scraper.run(targets))
 
