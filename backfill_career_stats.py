@@ -286,9 +286,22 @@ def main():
                     help="Concurrent Playwright pages (default 8)")
     ap.add_argument("--cdp-port", type=int, default=9222,
                     help="CDP port for your signed-in Chrome (default 9222)")
+    ap.add_argument("--watch", type=float, default=0,
+                    help="Re-run every N hours (e.g. --watch 2). 0 = run once.")
     args = ap.parse_args()
 
-    asyncio.run(run_backfill(args.input, args.output, args.parallel, args.cdp_port))
+    if args.watch > 0:
+        interval = args.watch * 3600
+        print(f"--- Watch mode: running every {args.watch}h ---")
+        while True:
+            print(f"Sleeping {args.watch}h before next run...")
+            time.sleep(interval)
+            print(f"\n{'='*60}")
+            print(f"Watch mode: starting backfill pass")
+            print(f"{'='*60}")
+            asyncio.run(run_backfill(args.input, args.output, args.parallel, args.cdp_port))
+    else:
+        asyncio.run(run_backfill(args.input, args.output, args.parallel, args.cdp_port))
 
 
 if __name__ == "__main__":
