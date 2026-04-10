@@ -669,12 +669,15 @@ class RaceScraper:
     # ── CSV output ───────────────────────────────────────────
 
     def _open_csv(self):
-        exists = os.path.exists(self._general_file) and os.path.getsize(self._general_file) > 0
-        self._csv_file = open(self._general_file, "a", newline="", encoding="utf-8")
+        # Start fresh if checkpoint is empty; otherwise append
+        mode = "w" if not self.checkpoint.done else "a"
+        write_header = (mode == "w" or not os.path.exists(self._general_file)
+                        or os.path.getsize(self._general_file) == 0)
+        self._csv_file = open(self._general_file, mode, newline="", encoding="utf-8")
         self._csv_writer = csv.DictWriter(
             self._csv_file, fieldnames=GENERAL_COLUMNS, extrasaction="ignore"
         )
-        if not exists:
+        if write_header:
             self._csv_writer.writeheader()
 
     def _write_entries(self, entries: List[Dict]):
@@ -815,23 +818,68 @@ class RaceScraper:
             log.info(f"Career stats: all {len(horse_names)} horses already cached")
             return
 
+        # Career fetching hits the same equibase.com homepage repeatedly,
+        # so cap concurrency at 3 to avoid bot detection.
+        career_concurrency = min(self._concurrency, 3)
         log.info(f"Career stats: fetching {len(missing)} of {len(horse_names)} horses "
-                 f"({len(horse_names) - len(missing)} cached)")
+                 f"({len(horse_names) - len(missing)} cached) "
+                 f"with {career_concurrency} workers")
+
+        completed = 0
+        t0 = time.perf_counter()
+
+        def _log_progress():
+            nonlocal completed
+            completed += 1
+            if completed % 25 == 0 or completed == len(missing):
+                elapsed = time.perf_counter() - t0
+                pct = completed / len(missing) * 100
+                rate = completed / elapsed if elapsed > 0 else 0
+                eta = (len(missing) - completed) / rate if rate > 0 else 0
+                if eta < 60:
+                    eta_str = f"{eta:.0f}s"
+                elif eta < 3600:
+                    eta_str = f"{eta / 60:.0f}m"
+                else:
+                    eta_str = f"{eta / 3600:.1f}h"
+                log.info(f"  Career progress: {completed}/{len(missing)} "
+                         f"({pct:.0f}%) | {elapsed / 60:.1f}m elapsed | "
+                         f"ETA: {eta_str}")
 
         try:
             await self._start_browser()
             await self._setup_session()
-            context, page = await self._create_context()
-            try:
-                for i, name in enumerate(missing):
-                    await self._get_career_stats(name, page)
-                    if (i + 1) % 25 == 0 or (i + 1) == len(missing):
-                        log.info(f"  Career progress: {i + 1}/{len(missing)} "
-                                 f"({(i + 1) / len(missing) * 100:.0f}%)")
-            finally:
-                await page.close()
-                if not self._is_cdp:
-                    await context.close()
+
+            semaphore = asyncio.Semaphore(career_concurrency)
+            _id_pool = asyncio.Queue()
+            for _i in range(1, career_concurrency + 1):
+                _id_pool.put_nowait(_i)
+
+            async def worker(idx, name):
+                # Stagger workers so they don't all hit equibase.com at once
+                await asyncio.sleep(idx % career_concurrency * 0.5)
+                async with semaphore:
+                    wid = await _id_pool.get()
+                    if career_concurrency > 1:
+                        _worker_id.set(f"W{wid}")
+                    context, page = await self._create_context()
+                    try:
+                        await self._get_career_stats(name, page)
+                        _log_progress()
+                    except Exception as e:
+                        log.error(f"Career fetch error for {name!r}: {e}")
+                        _log_progress()
+                    finally:
+                        await page.close()
+                        if not self._is_cdp:
+                            await context.close()
+                        _id_pool.put_nowait(wid)
+                        _worker_id.set('')
+
+            await asyncio.gather(
+                *[worker(i, name) for i, name in enumerate(missing)],
+                return_exceptions=True,
+            )
         finally:
             await self._stop_browser()
 
@@ -1096,7 +1144,7 @@ class RaceScraper:
                     if pdf_entries:
                         entries.extend(pdf_entries)
                         self.checkpoint.stats["pdfs"] += 1
-                        await self.human.random_delay(2.0, 5.0)
+                        await self.human.random_delay(0.2, 0.5, long_pause=False)
             else:
                 log.debug(f"Found {len(pdf_links)} links but none are direct PDF URLs")
 
@@ -1144,7 +1192,7 @@ class RaceScraper:
                         log.info(f"Race {race_num}: Response not a PDF (starts with {pdf_bytes[:30]!r})")
                         consecutive_failures += 1
 
-                    await self.human.random_delay(0.8, 1.5)
+                    await self.human.random_delay(0.2, 0.5, long_pause=False)
 
                     if consecutive_failures >= 2:
                         log.info(f"2 consecutive failures after race {race_num}, stopping")
@@ -1196,7 +1244,7 @@ class RaceScraper:
                     if pdf_entries:
                         entries.extend(pdf_entries)
                         self.checkpoint.stats["pdfs"] += 1
-                        await self.human.random_delay(1.0, 3.0)
+                        await self.human.random_delay(0.2, 0.5, long_pause=False)
                     else:
                         break
                 log.info(f"Direct PDF parsing found {len(entries)} entries from {self.checkpoint.stats['pdfs']} PDFs")
@@ -1883,8 +1931,10 @@ class RaceScraper:
 
         # ═══ PHASE 2: CAREER STATS (if enabled) ═══
         if self._career_stats_enabled:
+            t2 = time.perf_counter()
             await self._fetch_missing_career_stats()
             self._save_career_cache_to_file()
+            log.info(f"Career stats phase: {time.perf_counter() - t2:.0f}s")
 
         # ═══ PHASE 3: MERGE → final output ═══
         self._merge_final_output()

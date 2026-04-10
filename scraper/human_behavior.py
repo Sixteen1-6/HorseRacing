@@ -15,10 +15,9 @@ class HumanBehavior:
     """Simulates realistic human browsing patterns."""
 
     @staticmethod
-    async def random_delay(min_s=1.5, max_s=3.0):
+    async def random_delay(min_s=1.5, max_s=3.0, long_pause=True):
         """Wait a random amount with occasional longer pauses."""
-        # 10% chance of a longer "reading" pause
-        if random.random() < 0.10:
+        if long_pause and random.random() < 0.10:
             delay = random.uniform(8.0, 15.0)
         else:
             delay = random.uniform(min_s, max_s)
