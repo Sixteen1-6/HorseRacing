@@ -87,11 +87,6 @@ OUTPUT_COLUMNS = [
     "last_race_track", "last_race_date", "last_race_number", "last_race_finish",
     "track_code", "track_name", "race_date", "dollar_odds",
     "num_past_starts", "num_past_wins", "num_past_seconds", "num_past_thirds",
-    # Extended columns
-    "margin_finish", "pos_1st_call", "pos_2nd_call", "pos_stretch",
-    "margin_1st_call", "margin_2nd_call", "margin_stretch",
-    "frac_1", "frac_2", "frac_3", "frac_4", "final_time_secs",
-    "speed_figure_equibase", "claimed_price",
 ]
 
 TRACKS = {
@@ -109,6 +104,55 @@ TRACKS = {
     "PIM": "Pimlico", "DEL": "Delaware Park", "MTH": "Monmouth Park",
     "CBY": "Canterbury Park", "KD": "Kentucky Downs",
 }
+
+
+# ═══════════════════════════════════════════════════════════════
+# TRACK RACE-DAY CALENDAR — loaded from track_race_dates.json
+# ═══════════════════════════════════════════════════════════════
+# Populated at module load from a cache produced by fetch_all_track_dates.py,
+# which pulls confirmed race dates directly from Equibase's
+# eqbRaceChartCalendar.cfm endpoint. Each entry is a set of "YYYY-MM-DD"
+# strings. Tracks missing from the cache fall through to "always try".
+
+TRACK_RACE_DATES: dict[str, set[str]] = {}
+
+
+def _load_track_race_dates():
+    path = Path(__file__).with_name("track_race_dates.json")
+    if not path.exists():
+        return
+    try:
+        raw = json.loads(path.read_text())
+    except Exception as e:
+        print(f"[warn] could not read {path.name}: {e}", file=sys.stderr)
+        return
+    ppp = raw.get("per_track_per_year") or raw.get("tracks") or {}
+    for code, yr_map in ppp.items():
+        if not isinstance(yr_map, dict):
+            continue
+        dates: set[str] = set()
+        for v in yr_map.values():
+            if isinstance(v, list):
+                dates.update(v)
+        if dates:
+            TRACK_RACE_DATES[code] = dates
+
+
+_load_track_race_dates()
+
+
+def is_race_day(track_code: str, date) -> bool:
+    """Return True if the track actually ran a card on `date`.
+
+    Backed by confirmed Equibase calendar data. If a track has no entry in
+    the cache (cache missing or older than the target year), we fall back
+    to True so the scraper still attempts the date rather than silently
+    skipping real races.
+    """
+    dates = TRACK_RACE_DATES.get(track_code)
+    if not dates:
+        return True
+    return date.strftime("%Y-%m-%d") in dates
 
 USER_AGENTS = [
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
@@ -135,7 +179,7 @@ class HumanBehavior:
     """Simulates realistic human browsing patterns."""
 
     @staticmethod
-    async def random_delay(min_s=2.0, max_s=6.0):
+    async def random_delay(min_s=1.5, max_s=3.0):
         """Wait a random amount with occasional longer pauses."""
         # 10% chance of a longer "reading" pause
         if random.random() < 0.10:
@@ -277,65 +321,425 @@ class ChartPDFParser:
 
         return entries
 
+    # ─── Training-schema lookups ───
+    CONDITION_MAP = {
+        "fast": "FT", "good": "GD", "muddy": "MY", "sloppy": "SY",
+        "firm": "FM", "yielding": "YL", "soft": "SF", "heavy": "HY",
+        "wetfast": "WF", "wet fast": "WF", "slow": "SL", "frozen": "FZ",
+    }
+    WORD_NUM = {
+        "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
+        "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+        "eleven": 11, "twelve": 12,
+    }
+    WORD_FRAC = {
+        "half": 0.5, "quarter": 0.25, "threequarters": 0.75,
+        "sixteenth": 1/16, "eighth": 1/8, "threeeighths": 3/8,
+        "onesixteenth": 1/16, "oneeighth": 1/8,
+    }
+
+    def _split_camel(self, text: str) -> str:
+        """Insert spaces in CamelCase: 'BourbonTown' -> 'Bourbon Town'.
+        Preserves common name prefixes (Mc, Mac, O', De, La, Van, Le)."""
+        if not text:
+            return ""
+        s = re.sub(r"([a-z])([A-Z])", r"\1 \2", text)
+        s = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1 \2", s)
+        # Unsplit name-prefix artifacts like "Mc Peek" -> "McPeek"
+        s = re.sub(r"\bMc\s+([A-Z])", r"Mc\1", s)
+        s = re.sub(r"\bMac\s+([A-Z])", r"Mac\1", s)
+        s = re.sub(r"\bDe\s+([A-Z])", r"De\1", s)
+        s = re.sub(r"\bDi\s+([A-Z])", r"Di\1", s)
+        s = re.sub(r"\bLa\s+([A-Z])", r"La\1", s)
+        s = re.sub(r"\bO'\s*([A-Z])", r"O'\1", s)
+        return s
+
+    def _parse_distance_integer(self, raw: str) -> Tuple[int, str]:
+        """
+        Convert Equibase distance text to (integer_distance, unit).
+        F unit = furlongs*100 (plus any extra yards).
+        Y unit = raw yards.
+
+        Examples:
+          'FourAndOneHalfFurlongs' -> (450, 'F')
+          'SevenFurlongs'          -> (700, 'F')
+          'OneMile'                -> (800, 'F')
+          'OneAndOneSixteenthMiles'-> (850, 'F')
+          'OneAndOneEighthMiles'   -> (900, 'F')
+          'TwoHundredAndTwentyYards' -> (220, 'Y')
+        """
+        if not raw:
+            return (0, "F")
+        t = raw.lower().replace(" ", "").replace("-", "")
+        # Strip surface tail
+        t = re.sub(r"onthe(dirt|turf|allweather|synthetic).*$", "", t)
+        t = re.sub(r"(innerturf|outerturf|turfcourse|dirtcourse).*$", "", t)
+
+        is_mile = "mile" in t
+        is_yard = "yard" in t and "furlong" not in t and "mile" not in t
+        t_clean = re.sub(r"(furlongs?|miles?|yards?)", "", t)
+
+        # About prefix
+        t_clean = t_clean.replace("about", "")
+
+        # Parse "ABC and DEF" into whole + fraction
+        whole = 0
+        frac = 0.0
+        # Split on 'and'
+        parts = t_clean.split("and")
+        for i, part in enumerate(parts):
+            part = part.strip()
+            if not part:
+                continue
+            # First part could be integer word or fraction word
+            if i == 0:
+                # Whole number
+                if part in self.WORD_NUM:
+                    whole = self.WORD_NUM[part]
+                else:
+                    # Try to parse composite like 'twohundredandtwenty' collapsed
+                    m = re.match(r"(" + "|".join(self.WORD_NUM.keys()) + r")hundred", part)
+                    if m:
+                        whole = self.WORD_NUM[m.group(1)] * 100
+                        rest = part[len(m.group(0)):]
+                        if rest in self.WORD_NUM:
+                            whole += self.WORD_NUM[rest]
+            else:
+                # Subsequent parts: "one half" etc
+                # "onehalf" or "onesixteenth"
+                if part in self.WORD_FRAC:
+                    frac += self.WORD_FRAC[part]
+                    continue
+                # Try numerator+denominator
+                for key, val in self.WORD_FRAC.items():
+                    if part.endswith(key):
+                        num_word = part[:-len(key)]
+                        n = self.WORD_NUM.get(num_word, 1)
+                        frac += n * val
+                        break
+
+        if is_yard:
+            # Distance is yards
+            return (int(round(whole + frac * 1)), "Y")
+        if is_mile:
+            # Miles → furlongs*100
+            furlongs = (whole + frac) * 8
+            return (int(round(furlongs * 100)), "F")
+        # Default furlongs
+        furlongs = whole + frac
+        return (int(round(furlongs * 100)), "F")
+
+    def _parse_course(self, raw_block: str) -> str:
+        """Determine course from block text. Returns Dirt/Turf/Inner turf/Outer turf/Hurdle/Timber."""
+        t = raw_block.lower().replace(" ", "")
+        if "innerturf" in t:
+            return "Inner turf"
+        if "outerturf" in t:
+            return "Outer turf"
+        if "hurdle" in t:
+            return "Hurdle"
+        if "timber" in t:
+            return "Timber"
+        if "onthedirt" in t or "dirtcourse" in t:
+            return "Dirt"
+        if "ontheturf" in t or "turfcourse" in t:
+            return "Turf"
+        return ""
+
+    def _parse_surface(self, course: str) -> str:
+        """Derive single-letter surface from course."""
+        if not course:
+            return ""
+        c = course.lower()
+        if "turf" in c or "hurdle" in c or "timber" in c:
+            return "T"
+        return "D"
+
+    def _parse_condition_code(self, raw: str) -> str:
+        """Convert 'Sloppy(Sealed)' or 'Fast' to 2-letter training code."""
+        if not raw:
+            return ""
+        cleaned = re.sub(r"\(.*\)", "", raw).strip().lower()
+        cleaned = cleaned.replace(" ", "")
+        return self.CONDITION_MAP.get(cleaned, "")
+
+    def _parse_race_type_clean(self, raw: str) -> str:
+        """Split 'MAIDENSPECIALWEIGHT' into 'Maiden Special Weight' (title case)."""
+        if not raw:
+            return ""
+        # Known training-data race types
+        known = [
+            "Maiden Special Weight", "Maiden Claiming", "Maiden",
+            "Allowance Optional Claiming", "Allowance", "Starter Allowance",
+            "Starter Optional Claiming", "Optional Claiming", "Claiming",
+            "Handicap", "Invitational Stakes", "Invitational",
+            "Claiming Stakes", "Stakes", "Derby Trial", "Derby",
+            "Futurity Trial", "Futurity", "Championship", "Final",
+            "Match Race", "Speed Index Final", "Speed Index Race",
+        ]
+        # Normalize by stripping whitespace
+        collapsed = re.sub(r"\s+", "", raw).upper()
+        for kt in known:
+            if re.sub(r"\s+", "", kt).upper() == collapsed:
+                return kt
+        # Fallback: camel split + title case
+        return " ".join(self._split_camel(raw).title().split())
+
+    def _parse_sex_from_winner(self, winner_text: str) -> str:
+        """From 'Suspicions,BayColt,byCorniche...' extract 'Colt'."""
+        if not winner_text:
+            return ""
+        t = winner_text.lower()
+        for sex in ["Ridgling", "Gelding", "Filly", "Colt", "Mare", "Horse"]:
+            if sex.lower() in t:
+                return sex
+        return ""
+
+    def _parse_sex_from_conditions(self, block: str) -> str:
+        """From 'FORFILLIESTHREEYEARSOLD' or 'FORFILLIESANDMARES' etc."""
+        t = block.upper().replace(" ", "")
+        # Find the "FOR ..." eligibility line
+        m = re.search(r"FOR([A-Z,]+?)(?:WHICH|\.|WEIGHT|NON-WINNER|CLAIMING|\d)", t)
+        scope = m.group(1) if m else t[:500]
+        if "FILLIESANDMARES" in scope:
+            return "Filly"  # default; mares would need per-horse age
+        if "FILLIES" in scope and "COLTS" not in scope:
+            return "Filly"
+        if "MARES" in scope and "HORSES" not in scope:
+            return "Mare"
+        if "COLTSANDGELDINGS" in scope:
+            return "Colt"
+        return ""
+
+    def _parse_age_from_conditions(self, block: str) -> Optional[int]:
+        """From race conditions 'FORMAIDENS,TWOYEARSOLD' or 'FORFILLIESTHREEYEARSOLD'."""
+        t = block.upper().replace(" ", "").replace(",", "")
+        ages = [
+            ("TWOYEARSOLD", 2), ("THREEYEARSOLD", 3), ("FOURYEARSOLD", 4),
+            ("FIVEYEARSOLD", 5), ("SIXYEARSOLD", 6),
+            ("TWOYEAROLDS", 2), ("THREEYEAROLDS", 3), ("FOURYEAROLDS", 4),
+        ]
+        for k, v in ages:
+            if k in t:
+                return v
+        if "THREEYEARSOLDANDUPWARD" in t or "THREEYEARSOLDSANDUPWARD" in t:
+            return 3
+        if "FOURYEARSOLDANDUPWARD" in t or "FOURYEARSOLDSANDUPWARD" in t:
+            return 4
+        return None
+
+    def _format_jockey(self, raw: str) -> str:
+        """'Moran,Pietro' or 'Ortiz,Jr.,Irad' -> 'Pietro Moran' / 'Irad Ortiz Jr.'"""
+        if not raw:
+            return ""
+        raw = raw.strip()
+        parts = [p.strip() for p in raw.split(",")]
+        if len(parts) == 1:
+            return self._split_camel(parts[0])
+        if len(parts) == 2:
+            last, first = parts
+            return f"{self._split_camel(first)} {self._split_camel(last)}".strip()
+        # 3 parts like "Ortiz,Jr.,Irad"
+        last, suffix, first = parts[0], parts[1], parts[-1]
+        return f"{self._split_camel(first)} {self._split_camel(last)} {suffix}".strip()
+
+    def _format_track_name_upper(self, code: str) -> str:
+        name = TRACKS.get(code, code)
+        return name.upper()
+
+    def _format_date_slashy(self, iso_date: str) -> str:
+        """'2026-04-03' -> '4/3/2026'."""
+        try:
+            d = datetime.strptime(iso_date, "%Y-%m-%d")
+            return f"{d.month}/{d.day}/{d.year}"
+        except Exception:
+            return iso_date
+
+    def _parse_last_raced_token(self, tok: str) -> Dict[str, str]:
+        """
+        Parse Equibase 'last raced' token like '20Dec2510FG6' or '---'.
+        Format: DDMMMYY + race_number + track_code + finish_position
+        e.g. '20Dec2510FG6' = Dec 20 2025, race 10, FG track, finish 6.
+        Note: race_number can be 1-2 digits, track_code 2-5 letters, finish 1-2 digits.
+        """
+        out = {"last_race_date": "", "last_race_number": "",
+               "last_race_track": "", "last_race_finish": ""}
+        if not tok or tok.strip() in ("---", "--", "-"):
+            return out
+        m = re.match(
+            r"^(\d{1,2})([A-Z][a-z]{2})(\d{2})(\d{1,2})([A-Z]{2,5})(\d{1,2})$",
+            tok.strip(),
+        )
+        if not m:
+            return out
+        day, mon, yy, race_num, track, finish = m.groups()
+        month_names = {"Jan":1,"Feb":2,"Mar":3,"Apr":4,"May":5,"Jun":6,
+                       "Jul":7,"Aug":8,"Sep":9,"Oct":10,"Nov":11,"Dec":12}
+        mn = month_names.get(mon, 0)
+        year = 2000 + int(yy)
+        out["last_race_date"] = f"{mn}/{int(day)}/{year}"
+        out["last_race_number"] = race_num
+        out["last_race_track"] = self._format_track_name_upper(track)
+        out["last_race_finish"] = finish
+        return out
+
+    def _parse_trainer_owner_list(self, block: str, key: str) -> Dict[str, str]:
+        """
+        Parse 'Trainers: 8-Ward,Wesley;5-Hernandez,Rey;...' or 'Owners: ...'
+        Returns dict keyed by program number -> formatted name.
+        """
+        out = {}
+        # Section stops at the next labelled section header
+        if key.lower() == "trainers":
+            stop = r"(?:Owners:|Footnotes|Copyright|ViewGlossary|Breeder:|Scratched|\Z)"
+        else:  # owners
+            stop = r"(?:Trainers:|Footnotes|Copyright|ViewGlossary|Breeder:|Scratched|\Z)"
+        m = re.search(rf"{key}:\s*(.+?){stop}", block, re.DOTALL | re.IGNORECASE)
+        if not m:
+            return out
+        raw = m.group(1).replace("\n", "")
+        for piece in raw.split(";"):
+            piece = piece.strip()
+            if not piece or "-" not in piece:
+                continue
+            pgm, _, name = piece.partition("-")
+            pgm = pgm.strip()
+            name = name.strip().rstrip(",;")
+            if not pgm.isdigit() or not name:
+                continue
+            if key.lower() == "trainers":
+                out[pgm] = self._format_jockey(name)  # Last,First,(Suffix)
+            else:
+                out[pgm] = self._split_camel(name)
+        return out
+
     def _parse_chart_content(self, text: str, tables: list,
                              track_code: str, race_date: str) -> List[Dict]:
         """Parse extracted text and tables from a chart PDF."""
         entries = []
 
-        # Split text into race blocks
-        race_blocks = re.split(r"(?=(?:RACE|Race)\s*\d+)", text)
+        # Split text into race blocks by the 'TRACK-Date-Race N' header
+        race_blocks = re.split(r"(?=[A-Z]+-[A-Z][a-z]+\d+,\d{4}-Race\s*\d+)", text)
+        if len(race_blocks) <= 1:
+            race_blocks = re.split(r"(?=(?:RACE|Race)\s*\d+)", text)
 
         for block in race_blocks:
             if not block.strip():
                 continue
 
-            # Extract race-level info
             race_num_m = self.RACE_HEADER.search(block)
             race_num = int(race_num_m.group(1)) if race_num_m else 0
             if race_num == 0:
                 continue
 
-            distance_m = self.DISTANCE_PATTERN.search(block) or self.DISTANCE_PATTERN_NOSPACE.search(block)
-            surface_m = self.SURFACE_PATTERN.search(block) or self.SURFACE_PATTERN_NOSPACE.search(block)
-            condition_m = self.CONDITION_PATTERN.search(block)
-            purse_m = self.PURSE_PATTERN.search(block)
-            race_type_m = self.RACE_TYPE_PATTERN.search(block)
+            # ─── Extract race-level fields ───
+            # Distance: 'Distance:FourAndOneHalfFurlongsOnTheDirtCurrentTrackRecord:...'
+            dist_m = re.search(r"Distance:([A-Za-z]+?)(?:CurrentTrackRecord|$)", block)
+            dist_raw = dist_m.group(1) if dist_m else ""
+            dist_int, dist_unit = self._parse_distance_integer(dist_raw)
 
-            # Fractional and final times
-            frac_m = self.FRACTIONAL_PATTERN.search(block)
+            course = self._parse_course(dist_raw + " " + block[:2000])
+            surface = self._parse_surface(course)
+
+            # Track condition: 'Track:Sloppy(Sealed)' or 'Track:Fast'
+            cond_m = re.search(r"Track:([A-Za-z]+(?:\([^)]*\))?)", block)
+            track_condition = self._parse_condition_code(cond_m.group(1) if cond_m else "")
+
+            # Weather: 'Weather:Showery,67°'
+            weather_m = re.search(r"Weather:([A-Za-z]+)", block)
+            weather = weather_m.group(1).strip() if weather_m else ""
+
+            # Post time: 'Offat:1:05'
+            off_m = re.search(r"Offat:([\d:]+)", block)
+            post_time = off_m.group(1) if off_m else ""
+
+            # Purse
+            purse_m = re.search(r"Purse:\$?([\d,]+)", block)
+            purse = purse_m.group(1).replace(",", "") if purse_m else ""
+
+            # Race type: first line after the race header, e.g. 'MAIDENSPECIALWEIGHT-Thoroughbred' or 'STAKESCentralBankAshlandS.Grade1-Thoroughbred'
+            type_m = re.search(r"Race\s*\d+\s*\n?(?:\*|\[)?\s*\n?([A-Z][A-Z0-9&\- ]+?)(?:CentralBank|-Thoroughbred|-QuarterHorse|-Arabian|\n|FOR)", block)
+            race_type_raw = ""
+            if type_m:
+                race_type_raw = type_m.group(1).strip()
+            # Fall back to known-types regex
+            if not race_type_raw:
+                rt_m = re.search(
+                    r"(MAIDENSPECIALWEIGHT|MAIDENCLAIMING|ALLOWANCEOPTIONALCLAIMING|"
+                    r"STARTERALLOWANCE|STARTEROPTIONALCLAIMING|OPTIONALCLAIMING|"
+                    r"ALLOWANCE|CLAIMING|STAKES|HANDICAP|MAIDEN)", block)
+                if rt_m:
+                    race_type_raw = rt_m.group(1)
+            race_type = self._parse_race_type_clean(race_type_raw)
+
+            # Breed: 'MAIDENSPECIALWEIGHT-Thoroughbred'
+            breed_raw_m = re.search(r"-(Thoroughbred|QuarterHorse|Arabian|Paint|AppaloosaAPHA|Appaloosa)", block)
+            breed_map = {"Thoroughbred": "TB", "QuarterHorse": "QH",
+                         "Arabian": "AR", "Paint": "PT", "Appaloosa": "AP", "AppaloosaAPHA": "AP"}
+            breed = breed_map.get(breed_raw_m.group(1), "TB") if breed_raw_m else "TB"
+
+            # Age and sex from conditions
+            age_val = self._parse_age_from_conditions(block)
+            sex_from_conditions = self._parse_sex_from_conditions(block)
+
+            # Fractional times
+            frac_m = re.search(r"FractionalTimes:([\d\.\s:]+?)FinalTime:", block)
             frac_times_raw = frac_m.group(1).strip().split() if frac_m else []
-            final_m = self.FINAL_TIME_PATTERN.search(block)
+            final_m = re.search(r"FinalTime:([\d:.]+)", block)
+            win_time = self._parse_time(final_m.group(1)) if final_m else ""
 
-            # Insert CamelCase spaces for distance: "FourAndOneHalf" -> "Four And One Half"
-            distance_raw = distance_m.group(1).strip() if distance_m else ""
-            if distance_raw and " " not in distance_raw:
-                distance_raw = re.sub(r"([a-z])([A-Z])", r"\1 \2", distance_raw)
+            # Winner details block: 'Winner: Suspicions,BayColt,byCornicheoutofManaoag...'
+            winner_m = re.search(r"Winner:\s*([^\n]+?)(?=Breeder:|Owner:|\n)", block)
+            winner_text = winner_m.group(1) if winner_m else ""
+            winner_sex = self._parse_sex_from_winner(winner_text)
+
+            # Trainers and owners by program number
+            trainer_map = self._parse_trainer_owner_list(block, "Trainers")
+            owner_map = self._parse_trainer_owner_list(block, "Owners")
+
+            # Claiming price: 'ClaimingPrice:$50,000-$0'
+            claim_m = re.search(r"ClaimingPrice:\$?([\d,]+)", block)
+            claimed_price = claim_m.group(1).replace(",", "") if claim_m else ""
 
             race_info = {
                 "race_number": race_num,
                 "track_code": track_code,
-                "track_name": TRACKS.get(track_code, track_code),
-                "race_date": race_date,
-                "distance": distance_raw,
-                "surface": (surface_m.group(1)[0].upper() if surface_m else ""),
-                "track_condition": (condition_m.group(1) if condition_m else ""),
-                "purse": (purse_m.group(1).replace(",", "") if purse_m else ""),
-                "race_type": re.sub(r"([a-z])([A-Z])", r"\1 \2", race_type_m.group(1)) if race_type_m else "",
+                "track_name": self._format_track_name_upper(track_code),
+                "race_date": self._format_date_slashy(race_date),
+                "distance": dist_int,
+                "distance_unit": dist_unit,
+                "course": course,
+                "surface": surface,
+                "track_condition": track_condition,
+                "weather": weather,
+                "post_time": post_time,
+                "win_time": win_time,
+                "purse": purse,
+                "race_type": race_type,
+                "breed": breed,
+                "_age_default": age_val,
+                "_winner_sex": winner_sex,
+                "_sex_from_conditions": sex_from_conditions,
+                "_trainer_map": trainer_map,
+                "_owner_map": owner_map,
+                "claimed_price": claimed_price,
                 "frac_1": self._parse_time(frac_times_raw[0]) if len(frac_times_raw) > 0 else "",
                 "frac_2": self._parse_time(frac_times_raw[1]) if len(frac_times_raw) > 1 else "",
                 "frac_3": self._parse_time(frac_times_raw[2]) if len(frac_times_raw) > 2 else "",
                 "frac_4": self._parse_time(frac_times_raw[3]) if len(frac_times_raw) > 3 else "",
-                "final_time_secs": self._parse_time(final_m.group(1)) if final_m else "",
+                "final_time_secs": win_time,
             }
 
-            # Parse the results table for this race from the tables list
-            race_entries = self._parse_results_from_tables(tables, race_info)
-            if race_entries:
-                entries.extend(race_entries)
-            else:
-                # Fallback: try to parse from text lines
-                race_entries = self._parse_results_from_text(block, race_info)
-                entries.extend(race_entries)
+            race_entries = self._parse_results_from_text(block, race_info)
+            if not race_entries:
+                race_entries = self._parse_results_from_tables(tables, race_info)
+
+            # Strip internal-only keys before emitting
+            for e in race_entries:
+                for k in ("_age_default", "_winner_sex", "_sex_from_conditions",
+                          "_trainer_map", "_owner_map"):
+                    e.pop(k, None)
+            entries.extend(race_entries)
 
         return entries
 
@@ -448,73 +852,105 @@ class ChartPDFParser:
     def _parse_results_from_text(self, block: str, race_info: dict) -> List[Dict]:
         """Parse horse entries from Equibase chart PDF text.
 
-        Equibase PDF lines look like:
-          --- 3 Bledsoe(Rosario,Joel) 119 b 2 6 3Head 1Head 111/2 0.78* ins,split
-          03/25/23KEE 5 WestSaratoga(Calleja,Andres) 112 b 3 5 51/2 5Head 41 42.86 midpack
-        Format: LastRaced Pgm HorseName(Jockey) Wgt M/E PP Start 1/4 Str Fin Odds Comments
+        Equibase PDF line format (no-space variant):
+          --- 8 Suspicions(Moran,Pietro) 119 b 5 2 22 12 12 1.30* bmpst,2w,clrd,hldswy
+          20Dec2510FG6 5 MissCall(Hernandez,Jr.,Brian) 120 L 4 6 31/2 41 11/2 163/4 2.90 2p,bid...
+
+        Fields: LastRaced Pgm HorseName(Jockey) Wgt M/E PP Start 1/4 [1/2] [3/4] Str Fin Odds Comment
         """
         entries = []
         lines = block.split("\n")
         finish_pos = 0
 
-        # Pattern: last-raced (--- or 18Feb232FG1 etc), pgm#, Name(Jockey), weight
-        # Last raced can be: ---, or date+track like "18Feb232FG1", "4Mar2312GP6"
+        # LastRaced token is either '---' or a compact date/track/race/finish code.
+        # HorseName is CamelCase (no spaces) followed by (Jockey,Name).
         horse_line_re = re.compile(
-            r"(\S+)\s+"                             # Last raced (any non-space token)
-            r"(\d{1,2})\s+"                         # Program number
-            r"(\w[^(]+)\(([^)]+)\)\s+"              # HorseName(Jockey)
-            r"(\d{2,3})\s+"                         # Weight
-            r"(\S+)\s+"                             # M/E (medication/equipment: b, Lb, Lbf, --)
-            r"(\d{1,2})\s+"                         # Post Position
-            r"(\d{1,2})\s+"                         # Start position
-            r"(.+)"                                 # Rest: running positions, odds, comments
+            r"^(---|[0-9A-Za-z]+?)\s+"          # Last raced
+            r"(\d{1,2})\s+"                      # Program number
+            r"([A-Z][A-Za-z'\.0-9\- ]*?)\(([^)]+)\)\s*"  # HorseName(Jockey)
+            r"(\d{2,3})\s*"                      # Weight
+            r"([A-Za-z\-]{1,5}|--)\s+"           # Medication/equip
+            r"(\d{1,2})\s+"                      # Post position
+            r"(\d{1,2})\s+"                      # Start position
+            r"(.+)$"                             # Rest: running positions + odds + comment
         )
 
+        trainer_map = race_info.get("_trainer_map", {})
+        owner_map = race_info.get("_owner_map", {})
+        age_default = race_info.get("_age_default")
+        winner_sex = race_info.get("_winner_sex", "")
+        sex_from_conditions = race_info.get("_sex_from_conditions", "")
+
         for line in lines:
-            m = horse_line_re.match(line.strip())
+            line = line.strip()
+            if not line:
+                continue
+            # Skip header/section lines
+            if line.startswith("LastRaced") or line.startswith("FractionalTimes") or line.startswith("Pgm "):
+                continue
+            m = horse_line_re.match(line)
             if not m:
                 continue
 
             finish_pos += 1
             last_raced, pgm, horse, jockey, weight, med_equip, pp, _start, rest = m.groups()
 
-            # Parse the rest: running positions, finish, odds, comments
-            # Rest looks like: "3Head 1Head 111/2 0.78* ins,split3/16,cleared"
+            # Running positions + odds + comment
             rest_parts = rest.split()
             odds = ""
             comment_parts = []
             positions = []
-
-            for part in rest_parts:
-                # Odds look like: 0.78* or 26.07 or *1.40
-                if re.match(r"^\*?\d+\.\d+\*?$", part):
+            for i, part in enumerate(rest_parts):
+                # Odds: 0.78*, *1.40, 26.07
+                if re.match(r"^\*?\d+\.\d+\*?$", part) and "/" not in part:
                     odds = part.replace("*", "")
-                    # Everything after odds is comments
-                    idx = rest_parts.index(part)
-                    comment_parts = rest_parts[idx + 1:]
+                    comment_parts = rest_parts[i + 1:]
                     break
-                else:
-                    positions.append(part)
+                positions.append(part)
+
+            # Odds as integer dollar form (training schema uses int)
+            try:
+                dollar_odds_int = int(round(float(odds))) if odds else ""
+            except ValueError:
+                dollar_odds_int = ""
+
+            # Last raced parse
+            lr = self._parse_last_raced_token(last_raced)
+
+            # Medication: 'b', 'L', 'Lb', 'Lbf', '--'
+            med_clean = med_equip if med_equip and med_equip != "--" else ""
+            # Training schema uses L, BL, B, LA - map by presence
+            med_upper = med_clean.upper()
+            if "L" in med_upper and "B" in med_upper:
+                medication = "BL"
+            elif "L" in med_upper and "A" in med_upper:
+                medication = "LA"
+            elif "L" in med_upper:
+                medication = "L"
+            elif "B" in med_upper:
+                medication = "B"
+            else:
+                medication = ""
 
             entry = {**race_info}
-            entry["horse_name"] = horse.strip()
-            entry["program_num"] = pgm
-            entry["post_position"] = pp
-            entry["finish"] = str(finish_pos)
-            entry["jockey"] = jockey.replace(",", ", ") if jockey else ""
-            entry["weight"] = weight
-            entry["dollar_odds"] = odds
-            entry["medication"] = med_equip if med_equip != "--" else ""
-            entry["comment"] = " ".join(comment_parts)
-            # Running positions: typically 1/4, stretch, finish margin
-            if len(positions) >= 1:
-                entry["pos_1st_call"] = self._extract_pos(positions[0])
-                entry["margin_1st_call"] = self._extract_margin_from_pos(positions[0])
-            if len(positions) >= 2:
-                entry["pos_stretch"] = self._extract_pos(positions[1])
-                entry["margin_stretch"] = self._extract_margin_from_pos(positions[1])
-            if len(positions) >= 3:
-                entry["margin_finish"] = self._extract_margin_from_pos(positions[2])
+            entry["horse_name"] = self._split_camel(horse.strip())
+            entry["program_num"] = int(pgm) if pgm.isdigit() else pgm
+            entry["post_position"] = int(pp) if pp.isdigit() else pp
+            entry["finish"] = finish_pos
+            entry["jockey"] = self._format_jockey(jockey)
+            entry["trainer"] = trainer_map.get(pgm, "")
+            entry["owner"] = owner_map.get(pgm, "")
+            entry["weight"] = int(weight) if weight.isdigit() else weight
+            entry["dollar_odds"] = dollar_odds_int
+            entry["medication"] = medication
+            entry["comment"] = " ".join(comment_parts).replace(",", " ").strip()
+            entry["age"] = age_default if age_default is not None else ""
+            # Winner gets exact sex from Winner line; others use condition-derived default.
+            if finish_pos == 1 and winner_sex:
+                entry["sex"] = winner_sex
+            else:
+                entry["sex"] = sex_from_conditions
+            entry.update(lr)
 
             for c in OUTPUT_COLUMNS:
                 if c not in entry:
@@ -672,12 +1108,12 @@ class RaceScraper:
     # Format: /static/chart/{YEAR}/usa/{track_lower}/{YYYYMMDD}-usa-{track_lower}-{race_num}-d.standard.pdf
     PDF_CHART_HISTORICAL_URL = "https://www.equibase.com/static/chart/{year}/usa/{track_lower}/{date_ymd}-usa-{track_lower}-{race_num}-d.standard.pdf"
 
-    def __init__(self, output_file="historical_races.csv", headless=True, use_google=True, cdp_port=9222):
+    def __init__(self, output_file="historical_races.csv", headless=True, use_google=True, cdp_port=9222, checkpoint_path="scraper_v3_checkpoint.json", career_stats=False):
         self.output_file = output_file
         self.headless = headless
         self._use_google = use_google
         self._cdp_port = cdp_port
-        self.checkpoint = Checkpoint()
+        self.checkpoint = Checkpoint(checkpoint_path)
         self.pdf_parser = ChartPDFParser()
         self.human = HumanBehavior()
         self.pw = None
@@ -685,6 +1121,13 @@ class RaceScraper:
         self.page = None
         self._csv_file = None
         self._csv_writer = None
+        # Career stats enrichment
+        self._career_stats_enabled = career_stats
+        # Cache: horse_name_lower -> {num_past_starts, num_past_wins, num_past_seconds, num_past_thirds}
+        # Keeps scrape fast when the same horse races repeatedly.
+        self._career_cache: Dict[str, Dict] = {}
+        self._career_miss = 0
+        self._career_hit = 0
 
     # ── Browser lifecycle ────────────────────────────────────
 
@@ -699,8 +1142,8 @@ class RaceScraper:
                     self.browser = await self.pw.chromium.connect_over_cdp(url)
                     self.context = self.browser.contexts[0]
                     self.page = await self.context.new_page()
-                    log.info(f"Connected to your running Chrome on {url}!")
-                    await self._prompt_login()
+                    log.info(f"Connected to your running Chrome on {url}! "
+                             "(assuming you're already signed in)")
                     return
                 except Exception as e:
                     log.debug(f"CDP connect to {url} failed: {e}")
@@ -730,6 +1173,47 @@ class RaceScraper:
 
         # Navigate to Equibase and handle bot detection upfront
         await self._pass_bot_detection()
+        # Wait for the user to sign in to Equibase in the fresh browser window
+        await self._wait_for_equibase_login()
+
+    async def _wait_for_equibase_login(self):
+        """Open equibase.com in the attached Chrome and wait for the user to
+        sign in manually. Polls until a signed-in indicator appears, or user
+        presses Enter in the terminal."""
+        try:
+            await self.page.goto("https://www.equibase.com/", wait_until="domcontentloaded", timeout=20000)
+            await asyncio.sleep(1.5)
+        except Exception as e:
+            log.warning(f"Could not open equibase.com: {e}")
+
+        async def _is_signed_in() -> bool:
+            try:
+                text = await self.page.inner_text("body")
+                tl = text.lower()
+                if "sign out" in tl or "my account" in tl or "welcome," in tl:
+                    return True
+            except Exception:
+                pass
+            return False
+
+        if await _is_signed_in():
+            log.info("Already signed into Equibase. Continuing...")
+            return
+
+        log.info("=" * 60)
+        log.info("Please sign in to Equibase in the Chrome window that opened.")
+        log.info("Polling every 3s for sign-in (5 min timeout)...")
+        log.info("=" * 60)
+
+        # Poll the page every 3 seconds for up to 5 minutes.
+        for i in range(100):
+            await asyncio.sleep(3)
+            if await _is_signed_in():
+                log.info("Sign-in detected. Continuing with scrape...")
+                return
+            if i % 5 == 4:
+                log.info(f"  still waiting... ({(100 - i - 1) * 3}s remaining)")
+        log.warning("Sign-in wait timed out — continuing anyway (career stats may fail).")
 
     async def _prompt_login(self):
         """Prompt user to sign in via the URL bar, then wait."""
@@ -854,6 +1338,158 @@ class RaceScraper:
         if self.pw:
             await self.pw.stop()
 
+    # ── Career stats enrichment (horse profile scrape) ───────
+    #
+    # The chart PDFs contain only the result of a single race — they don't
+    # report a horse's career totals. To fill num_past_{starts,wins,seconds,
+    # thirds}, we hit the Equibase horse profile page per unique horse and
+    # read the career stats table. This mirrors scraper_entries.py's
+    # _fetch_horse_pp, but we need a URL (not a name) since Equibase has no
+    # public name-search endpoint. We harvest those URLs from the chart
+    # index HTML page (eqbPDFChartPlusIndex.cfm) which embeds
+    # /profiles/Results.cfm?type=Horse&refno=... links for each runner.
+
+    async def _fetch_horse_career_by_name(self, horse_name: str) -> Dict:
+        """Search Equibase by horse name via the homepage form and parse the
+        career stats block from whatever page lands. Returns {} on failure."""
+        result: Dict = {}
+        try:
+            await self.page.goto("https://www.equibase.com/", wait_until="domcontentloaded", timeout=20000)
+            await asyncio.sleep(0.5)
+            await self.page.fill("input[name='searchInput']", horse_name)
+            # Click the submit button (JS-driven form → direct profile page for unique matches)
+            try:
+                await self.page.click("form button[type='submit'], form input[type='submit']", timeout=3000)
+            except Exception:
+                await self.page.press("input[name='searchInput']", "Enter")
+            await self.page.wait_for_load_state("domcontentloaded", timeout=15000)
+            await asyncio.sleep(0.8)
+
+            landed = self.page.url
+            # Case A: direct hit — we're on a horse profile page already.
+            if "type=Horse" in landed and "refno=" in landed:
+                result = await self._parse_career_from_profile()
+                return result
+
+            # Case B: multi-match search result — click the first TB match.
+            profile_href = await self.page.evaluate(
+                r"""
+                () => {
+                    const links = Array.from(document.querySelectorAll('a[href*="type=Horse"]'))
+                        .filter(a => /refno=\d+/i.test(a.href));
+                    if (!links.length) return null;
+                    const tb = links.find(a => /registry=T(?:&|$)/i.test(a.href)) || links[0];
+                    return tb.href;
+                }
+                """
+            )
+            if profile_href:
+                await self.page.goto(profile_href, wait_until="domcontentloaded", timeout=20000)
+                await asyncio.sleep(0.8)
+                result = await self._parse_career_from_profile()
+        except Exception as e:
+            log.debug(f"career search failed for {horse_name!r}: {e}")
+        return result
+
+    async def _parse_career_from_profile(self) -> Dict:
+        """Extract career totals from the currently-loaded horse profile page.
+        Tries DOM tables first, then falls back to body-text regex because
+        Equibase sometimes renders the block as a flex layout without a
+        standards-compliant table header row."""
+        # Attempt 1: table with canonical header
+        try:
+            data = await self.page.evaluate(
+                r"""
+                () => {
+                    const tables = Array.from(document.querySelectorAll('table'))
+                        .filter(t => {
+                            const h = t.rows[0];
+                            if (!h) return false;
+                            const txt = Array.from(h.cells).map(c => c.innerText.trim()).join('|');
+                            return txt === 'Starts|Firsts|Seconds|Thirds|Earnings';
+                        });
+                    return tables.map(t =>
+                        Array.from(t.rows).map(r =>
+                            Array.from(r.cells).map(c => c.innerText.trim())
+                        )
+                    );
+                }
+                """
+            )
+            career_row = None
+            if data and len(data) >= 2 and len(data[1]) > 1:
+                career_row = data[1][1]
+            elif data and len(data) == 1 and len(data[0]) > 1:
+                career_row = data[0][1]
+            if career_row and len(career_row) >= 4:
+                try:
+                    return {
+                        "num_past_starts":  int(re.sub(r"[^\d]", "", career_row[0] or "0") or "0"),
+                        "num_past_wins":    int(re.sub(r"[^\d]", "", career_row[1] or "0") or "0"),
+                        "num_past_seconds": int(re.sub(r"[^\d]", "", career_row[2] or "0") or "0"),
+                        "num_past_thirds":  int(re.sub(r"[^\d]", "", career_row[3] or "0") or "0"),
+                    }
+                except ValueError:
+                    pass
+        except Exception:
+            pass
+
+        # Attempt 2: body-text regex. On Fierceness's profile the text had the form
+        #   "CAREER STATISTICS*\nStarts\tFirsts\tSeconds\tThirds\tEarnings\n14\t7\t2\t2"
+        try:
+            body = await self.page.evaluate("() => document.body.innerText || ''")
+            m = re.search(
+                r"CAREER\s+STATISTICS\*?[\s\S]{0,200}?"
+                r"Starts\s+Firsts\s+Seconds\s+Thirds\s+Earnings\s+"
+                r"(\d+)\s+(\d+)\s+(\d+)\s+(\d+)",
+                body, re.I,
+            )
+            if m:
+                return {
+                    "num_past_starts":  int(m.group(1)),
+                    "num_past_wins":    int(m.group(2)),
+                    "num_past_seconds": int(m.group(3)),
+                    "num_past_thirds":  int(m.group(4)),
+                }
+        except Exception:
+            pass
+        return {}
+
+    async def _enrich_with_career_stats(self, entries: List[Dict]):
+        """Populate career fields on each entry by searching each unique horse
+        by name and parsing the profile. Cached across the run."""
+        if not self._career_stats_enabled or not entries:
+            return
+
+        unique_names = []
+        seen = set()
+        for e in entries:
+            name = (e.get("horse_name") or "").strip()
+            if not name:
+                continue
+            key = name.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            unique_names.append(name)
+
+        for name in unique_names:
+            key = name.lower()
+            if key in self._career_cache:
+                self._career_hit += 1
+                stats = self._career_cache[key]
+            else:
+                self._career_miss += 1
+                stats = await self._fetch_horse_career_by_name(name)
+                self._career_cache[key] = stats
+                await self.human.random_delay(0.4, 1.0)
+
+            if stats:
+                for e in entries:
+                    if (e.get("horse_name") or "").strip().lower() == key:
+                        for k, v in stats.items():
+                            e[k] = v
+
     # ── CSV output ───────────────────────────────────────────
 
     def _open_csv(self):
@@ -909,7 +1545,7 @@ class RaceScraper:
             await asyncio.sleep(random.uniform(0.5, 1.5))
             await self.page.keyboard.press("Enter")
             await self.page.wait_for_load_state("domcontentloaded")
-            await self.human.random_delay(2.0, 4.0)
+            await self.human.random_delay(1.2, 2.5)
 
             # Find Equibase links in results
             links = await self.page.evaluate("""
@@ -949,7 +1585,6 @@ class RaceScraper:
         """
         track_name = TRACKS.get(track_code, track_code)
         date_str = date.strftime("%B %d, %Y").replace(" 0", " ")
-        date_mmddyy = date.strftime("%m%d%y")
 
         # Helper to check if a page loaded successfully
         async def _check_page(label: str) -> bool:
@@ -977,34 +1612,17 @@ class RaceScraper:
             log.info(f"{label}: Page has data! ({len(text)} chars)")
             return True
 
-        # ── Attempt 1: All-races summary URL (free, best for scraping) ──
-        summary_url = self.SUMMARY_URL.format(track=track_code, date=date_mmddyy)
-        log.info(f"[{track_code} {date.strftime('%Y-%m-%d')}] Trying summary URL: {summary_url}")
-        try:
-            await self.page.goto(summary_url, wait_until="domcontentloaded", timeout=15000)
-            await self.human.random_delay(2.0, 4.0)
-            if await _check_page("Summary"):
-                return True
-        except Exception as e:
-            log.info(f"Summary URL failed: {e}")
+        # Tier-1 optimization: skip the SUMMARY_URL and RACECARD_INDEX_URL paths.
+        # Both return 404 for every date in the 2024-2026 target window — they
+        # wasted ~8s per race day with zero data yield. Jump straight to the
+        # chart embed which is the first URL that actually works.
 
-        # ── Attempt 2: Race card index URL (free, has links per race) ──
-        racecard_url = self.RACECARD_INDEX_URL.format(track=track_code, date=date_mmddyy)
-        log.info(f"Trying race card index: {racecard_url}")
-        try:
-            await self.page.goto(racecard_url, wait_until="domcontentloaded", timeout=15000)
-            await self.human.random_delay(2.0, 4.0)
-            if await _check_page("Race card index"):
-                return True
-        except Exception as e:
-            log.info(f"Race card index URL failed: {e}")
-
-        # ── Attempt 3: Premium chart embed (works for historical data) ──
+        # ── Attempt 1 (primary): Premium chart embed ──
         chart_embed_url = f"https://www.equibase.com/premium/chartEmb.cfm?track={track_code}&raceDate={date.strftime('%m/%d/%Y')}&cy=USA"
         log.info(f"Trying premium chart embed: {chart_embed_url}")
         try:
             await self.page.goto(chart_embed_url, wait_until="domcontentloaded", timeout=15000)
-            await self.human.random_delay(2.0, 4.0)
+            await self.human.random_delay(1.2, 2.5)
             if await _check_page("Premium chart embed"):
                 return True
         except Exception as e:
@@ -1017,7 +1635,7 @@ class RaceScraper:
         log.info(f"Trying premium chart index: {index_url}")
         try:
             await self.page.goto(index_url, wait_until="domcontentloaded", timeout=15000)
-            await self.human.random_delay(2.0, 4.0)
+            await self.human.random_delay(1.2, 2.5)
             if await _check_page("Premium chart index"):
                 return True
         except Exception as e:
@@ -1047,7 +1665,7 @@ class RaceScraper:
 
                     if link_clicked:
                         await self.page.wait_for_load_state("domcontentloaded", timeout=15000)
-                        await self.human.random_delay(2.0, 4.0)
+                        await self.human.random_delay(1.2, 2.5)
                         landed_url = self.page.url
                         log.info(f"Google -> landed on: {landed_url}")
                         text = await self.page.inner_text("body")
@@ -1165,15 +1783,15 @@ class RaceScraper:
                         log.info(f"Race {race_num}: Response not a PDF (starts with {pdf_bytes[:30]!r})")
                         consecutive_failures += 1
 
-                    await self.human.random_delay(1.0, 2.0)
+                    await self.human.random_delay(0.8, 1.5)
 
-                    if consecutive_failures >= 3:
-                        log.info(f"3 consecutive failures after race {race_num}, stopping")
+                    if consecutive_failures >= 2:
+                        log.info(f"2 consecutive failures after race {race_num}, stopping")
                         break
                 except Exception as e:
                     log.info(f"Race {race_num} chart download failed: {e}")
                     consecutive_failures += 1
-                    if consecutive_failures >= 3:
+                    if consecutive_failures >= 2:
                         break
 
             if entries:
@@ -1249,7 +1867,7 @@ class RaceScraper:
                     if view_all_url:
                         log.info(f"Clicking 'View All Races': {view_all_url}")
                         await self.page.goto(view_all_url, wait_until="domcontentloaded", timeout=15000)
-                        await self.human.random_delay(2.0, 4.0)
+                        await self.human.random_delay(1.2, 2.5)
                         entries = await self._parse_html_tables(track_code, race_date_str)
                 except Exception as e:
                     log.debug(f"View All Races click failed: {e}")
@@ -1261,7 +1879,7 @@ class RaceScraper:
                     log.info(f"Trying Equibase summary page: {summary_url}")
                     try:
                         await self.page.goto(summary_url, wait_until="domcontentloaded", timeout=15000)
-                        await self.human.random_delay(2.0, 4.0)
+                        await self.human.random_delay(1.2, 2.5)
                         log.info(f"Summary page landed on: {self.page.url}")
                         entries = await self._parse_html_tables(track_code, race_date_str)
                         if entries:
@@ -1292,7 +1910,7 @@ class RaceScraper:
                 try:
                     await self.page.goto(link_info["href"],
                                          wait_until="domcontentloaded", timeout=15000)
-                    await self.human.random_delay(2.0, 4.0)
+                    await self.human.random_delay(1.2, 2.5)
                     await self.human.random_scroll(self.page)
 
                     race_entries = await self._parse_html_tables(track_code, race_date_str)
@@ -1726,6 +2344,10 @@ class RaceScraper:
                     # Extract data
                     entries = await self._extract_from_page(track, date)
 
+                    # Optionally enrich with career stats from horse profile pages
+                    if entries and self._career_stats_enabled:
+                        await self._enrich_with_career_stats(entries)
+
                     if entries:
                         self._write_entries(entries)
                         self.checkpoint.mark(track, date, len(entries))
@@ -1741,7 +2363,7 @@ class RaceScraper:
                     log.debug(f"[{pct:.1f}%] {track} {date_str}: no racing")
 
                 # Variable delay between pages
-                await self.human.random_delay(2.5, 6.0)
+                await self.human.random_delay(1.5, 3.5)
 
         except KeyboardInterrupt:
             log.info("Interrupted — saving checkpoint")
@@ -1756,6 +2378,9 @@ class RaceScraper:
             log.info(f"\n{'='*50}")
             log.info(f"DONE | Pages: {s['pages']:,} | Entries: {s['entries']:,} | "
                      f"PDFs: {s['pdfs']} | Errors: {s['errors']}")
+            if self._career_stats_enabled:
+                log.info(f"Career stats | cache hits: {self._career_hit} | "
+                         f"misses: {self._career_miss} | unique horses: {len(self._career_cache)}")
             log.info(f"Output: {self.output_file}")
             log.info(f"{'='*50}")
 
@@ -1797,6 +2422,12 @@ Examples:
                    help="Chrome DevTools port (default: 9222)")
     p.add_argument("--resume", action="store_true")
     p.add_argument("--list-tracks", action="store_true")
+    p.add_argument("--checkpoint", default="scraper_v3_checkpoint.json",
+                   help="Checkpoint file path (use a separate file for isolated runs)")
+    p.add_argument("--career-stats", action="store_true",
+                   help="After parsing each race day, enrich entries with career stats "
+                        "(num_past_starts/wins/seconds/thirds) from horse profile pages. "
+                        "Slower — adds ~1s per unique horse — but populates those fields.")
 
     args = p.parse_args()
 
@@ -1806,7 +2437,7 @@ Examples:
         return
 
     if args.resume and not args.start:
-        cp = Checkpoint()
+        cp = Checkpoint(args.checkpoint)
         if not cp.done:
             p.error("No checkpoint found. Use --start and --end.")
         dates = [datetime.strptime(k.split("_")[1], "%Y%m%d") for k in cp.done]
@@ -1820,25 +2451,34 @@ Examples:
         end_date = datetime.strptime(args.end, "%Y-%m-%d")
         track_codes = args.tracks.split(",") if args.tracks else list(TRACKS.keys())
 
-    # Generate targets
+    # Generate targets — pre-filter by track meet calendar to skip non-race days
     targets = []
+    skipped = 0
     d = start_date
     while d <= end_date:
         for t in track_codes:
-            targets.append((t, d))
+            if is_race_day(t, d):
+                targets.append((t, d))
+            else:
+                skipped += 1
         d += timedelta(days=1)
 
     # Shuffle to avoid hammering one track consecutively
     random.shuffle(targets)
 
     est_hours = len(targets) * 4.0 / 3600
-    log.info(f"Targets: {len(targets):,} | Est: {est_hours:.1f}h | Tracks: {len(track_codes)}")
+    log.info(
+        f"Targets: {len(targets):,} (filtered out {skipped:,} non-race days) "
+        f"| Est: {est_hours:.1f}h | Tracks: {len(track_codes)}"
+    )
 
     scraper = RaceScraper(
         output_file=args.output,
         headless=not args.visible,
         use_google=not args.no_google,
         cdp_port=args.cdp_port,
+        checkpoint_path=args.checkpoint,
+        career_stats=args.career_stats,
     )
     asyncio.run(scraper.run(targets))
 

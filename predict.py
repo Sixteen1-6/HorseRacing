@@ -193,6 +193,12 @@ def main():
     categorical_cols = ['surface', 'track_condition', 'weather', 'breed',
                        'sex', 'medication', 'track_name',
                        'jockey', 'trainer', 'owner', 'horse_name', 'race_type']
+    # Preserve raw display values BEFORE any cardinality collapse or encoding.
+    # The model-side collapse at MAX_CATEGORIES buckets rare names into "Other";
+    # the HTML/CSV reports should show the real names, not the model feature.
+    for display_col in ('jockey', 'trainer', 'owner', 'horse_name'):
+        if display_col in df.columns:
+            df[f'{display_col}_display'] = df[display_col].astype(str)
     for col in categorical_cols:
         if col in df.columns:
             df[col] = df[col].astype('category')
@@ -532,7 +538,9 @@ def main():
             'age_category', 'win_rate_category',
             'odds_category', 'experience_category',
             'is_inside_post', 'is_outside_post',  # These are binary/low cardinality
-            'jt_strength'  # Our new jockey-trainer strength category
+            'jt_strength',  # Our new jockey-trainer strength category
+            'jockey_display', 'trainer_display',  # Reserved for report display
+            'owner_display', 'horse_name_display',
             ]:
             cols_to_limit.append(col)
             print(f"Identified high-cardinality column '{col}' with {n_unique} categories. Will limit to top {MAX_CATEGORIES}.")
@@ -664,7 +672,11 @@ def main():
     print("Preparing data for model prediction...")
 
     # Make sure we only use features available for prediction
-    X = df.drop(columns=['race_id', 'original_horse_name'], errors='ignore')
+    X = df.drop(
+        columns=['race_id', 'original_horse_name',
+                 'jockey_display', 'trainer_display', 'owner_display', 'horse_name_display'],
+        errors='ignore',
+    )
 
     # Convert categorical columns to codes for model fitting
     categorical_feature_names = []
@@ -696,9 +708,13 @@ def main():
     predictions_df = df[['race_id', 'race_number', 'original_horse_name', 'predicted_finish']]
     if 'dollar_odds' in df.columns:
         predictions_df['odds'] = df['dollar_odds']
-    if 'jockey' in df.columns:
+    if 'jockey_display' in df.columns:
+        predictions_df['jockey'] = df['jockey_display']
+    elif 'jockey' in df.columns:
         predictions_df['jockey'] = df['jockey']
-    if 'trainer' in df.columns:
+    if 'trainer_display' in df.columns:
+        predictions_df['trainer'] = df['trainer_display']
+    elif 'trainer' in df.columns:
         predictions_df['trainer'] = df['trainer']
 
     # Save all predictions to a single CSV
@@ -747,9 +763,13 @@ def main():
         race_predictions = race_df[['original_horse_name', 'predicted_finish']]
         if 'dollar_odds' in race_df.columns:
             race_predictions['odds'] = race_df['dollar_odds']
-        if 'jockey' in race_df.columns:
+        if 'jockey_display' in race_df.columns:
+            race_predictions['jockey'] = race_df['jockey_display']
+        elif 'jockey' in race_df.columns:
             race_predictions['jockey'] = race_df['jockey']
-        if 'trainer' in race_df.columns:
+        if 'trainer_display' in race_df.columns:
+            race_predictions['trainer'] = race_df['trainer_display']
+        elif 'trainer' in race_df.columns:
             race_predictions['trainer'] = race_df['trainer']
 
         # Save individual race predictions
@@ -839,9 +859,11 @@ def main():
                 odds = horse['dollar_odds'] if not pd.isna(horse['dollar_odds']) else "N/A"
                 html_report += f"<td>{odds}</td>"
             if 'jockey' in race_df.columns:
-                html_report += f"<td>{horse['jockey']}</td>"
+                jockey_val = horse['jockey_display'] if 'jockey_display' in race_df.columns else horse['jockey']
+                html_report += f"<td>{jockey_val}</td>"
             if 'trainer' in race_df.columns:
-                html_report += f"<td>{horse['trainer']}</td>"
+                trainer_val = horse['trainer_display'] if 'trainer_display' in race_df.columns else horse['trainer']
+                html_report += f"<td>{trainer_val}</td>"
             if 'age' in race_df.columns:
                 age = horse['age'] if not pd.isna(horse['age']) else "N/A"
                 html_report += f"<td>{age}</td>"

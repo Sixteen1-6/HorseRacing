@@ -29,3 +29,15 @@ Thumbs.db
 
 # Jupyter
 .ipynb_checkpoints/
+
+# Scraper data & caches
+*.csv
+horse_career_cache.json
+checkpoint_*.json
+career_week_checkpoint.json
+scraper_v3_checkpoint.json
+*.pdf
+*.tar.gz
+*.log
+extracted_stats*.json
+hackdata_tmp/
