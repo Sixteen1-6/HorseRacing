@@ -34,6 +34,7 @@ Thumbs.db
 # Scraper data & caches
 *.csv
 !races_2024_2026.csv
+!races_2024_2026_general.csv
 horse_career_cache.json
 checkpoint_*.json
 career_week_checkpoint.json
