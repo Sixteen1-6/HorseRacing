@@ -468,6 +468,7 @@ def load_and_engineer_features(csv_path="test1data.csv"):
         'medication', 'owner', 'track_condition',  # replaced by standard_condition
         'post_position',  # replaced by post_position_normalized
         'horse_dob',      # replaced by age
+        'race_date',      # used for race_id and days_since_last_race, not a feature
         # Speed pipeline intermediate cols (not useful as features, just building blocks)
         'raw_speed_rating', 'track_variant', 'speed_figure',
         # Fractional times — correlated with final_time_secs, and leak for current race
