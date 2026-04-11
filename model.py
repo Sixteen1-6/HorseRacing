@@ -471,8 +471,9 @@ def load_and_engineer_features(csv_path="test1data.csv"):
         'race_date',      # used for race_id and days_since_last_race, not a feature
         'speed_figure_normalized',  # LEAK: computed from THIS race's finish time
         'win_time_seconds',         # LEAK: winning time of THIS race
-        'dollar_odds',    # LEAK: final odds reflect public knowledge of who wins
         'odds_category',  # derived from dollar_odds
+        # NOTE: dollar_odds is dropped in prepare_ranking_data, NOT here,
+        # so it's available for ROI simulation
         # Speed pipeline intermediate cols (not useful as features, just building blocks)
         'raw_speed_rating', 'track_variant', 'speed_figure',
         # Fractional times — correlated with final_time_secs, and leak for current race
@@ -502,10 +503,10 @@ def prepare_ranking_data(df):
     print("  [prep] Sorting by race_id...", flush=True)
     df = df.sort_values('race_id').reset_index(drop=True)
 
-    # Save dollar_odds separately for ROI simulation (before it becomes a feature)
+    # Save dollar_odds separately for ROI simulation, then drop from features
     dollar_odds = df['dollar_odds'].values if 'dollar_odds' in df.columns else None
 
-    X = df.drop(columns=['finish', 'race_id'], errors='ignore')
+    X = df.drop(columns=['finish', 'race_id', 'dollar_odds'], errors='ignore')
     finish = df['finish'].values
     race_ids = df['race_id'].values
 
