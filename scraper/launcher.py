@@ -90,8 +90,9 @@ Examples:
     p.add_argument("--output", default="historical_races.csv",
                    help="Final merged output file")
     p.add_argument("--no-google", action="store_true")
-    p.add_argument("--career-stats", action="store_true")
     p.add_argument("--visible", action="store_true")
+    p.add_argument("-v", "--verbose", action="store_true",
+                   help="Pass verbose flag to workers")
     p.add_argument("--cdp-port", type=int, default=0,
                    help="Chrome DevTools port (0 = don't use CDP, default: 0)")
 
@@ -142,8 +143,8 @@ Examples:
         ]
         if args.no_google:
             cmd.append("--no-google")
-        if args.career_stats:
-            cmd.append("--career-stats")
+        if args.verbose:
+            cmd.append("-v")
         if args.visible:
             cmd.append("--visible")
         if args.cdp_port:

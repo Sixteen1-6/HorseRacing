@@ -517,9 +517,10 @@ class RaceScraper:
 
         # Read all rows and sort by date so we can accumulate stats chronologically
         with open(source, "r", encoding="utf-8") as f:
-            rows = list(csv.DictReader(f))
+            rows = [r for r in csv.DictReader(f)
+                    if (r.get("horse_name") or "").strip() and (r.get("race_date") or "").strip()]
 
-        rows.sort(key=lambda r: r.get("race_date", ""))
+        rows.sort(key=lambda r: r.get("race_date") or "")
 
         # First pass: build per-horse stats in date order, recording
         # each horse's stats *before* each race date.
@@ -568,7 +569,8 @@ class RaceScraper:
 
         count = 0
         with open(dest, "w", newline="", encoding="utf-8") as out_f:
-            writer = csv.DictWriter(out_f, fieldnames=OUTPUT_COLUMNS, extrasaction="ignore")
+            writer = csv.DictWriter(out_f, fieldnames=OUTPUT_COLUMNS,
+                                    extrasaction="ignore", quoting=csv.QUOTE_MINIMAL)
             writer.writeheader()
             for row in rows:
                 name = (row.get("horse_name") or "").strip()

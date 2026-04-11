@@ -166,6 +166,11 @@ def compute_raw_speed_ratings(entries, par_times, margins_data=None):
         furlongs = sample["furlongs"]
         spl = seconds_per_length(furlongs)
 
+        if spl == 0 or win_time == 0:
+            for e in race_entries:
+                e["raw_speed_rating"] = None
+            continue
+
         # Winner's deviation from par in lengths
         winner_dev = (par - win_time) / spl
 
