@@ -213,6 +213,8 @@ def engineer_features(df, jt_lookup=None):
             df['race_date'].dt.strftime('%Y%m%d') + '_' +
             df['race_number'].astype(str)
         )
+    elif 'race_number' in df.columns:
+        df['race_id'] = 'race_' + df['race_number'].astype(str)
     else:
         df['race_id'] = 'race_' + (df.index // 8).astype(str)
 
@@ -325,6 +327,11 @@ def main():
     # Load race data
     print(f"Loading race data from {args.input}...")
     df = pd.read_csv(args.input, low_memory=False)
+    # Remove scratched horses (empty horse_name or race_number)
+    scratched = df['horse_name'].isna() | (df['horse_name'].astype(str).str.strip() == '')
+    if scratched.any():
+        print(f"  Removed {scratched.sum()} scratched entries")
+    df = df[~scratched].reset_index(drop=True)
     print(f"Loaded {len(df)} entries")
 
     # Save display columns
@@ -361,6 +368,10 @@ def main():
         race_scores = scores[idx:idx + size]
         race_odds = dollar_odds[idx:idx + size] if dollar_odds is not None else None
 
+        if size < 2:
+            idx += size
+            continue
+
         # Calibrated win probabilities
         raw_probs = softmax(race_scores)
         cal_probs = calibrator.predict(raw_probs)
@@ -389,7 +400,8 @@ def main():
                 'win_probability': round(cal_probs[local_i], 4),
                 'top3_probability': round(top3_probs[local_i], 4),
                 'score': round(race_scores[local_i], 4),
-                'odds': odds_val if not np.isnan(odds_val) else None,
+                'dollar_odds': odds_val if not np.isnan(odds_val) else None,
+                'odds': odds_val if not np.isnan(odds_val) else None,  # alias for predict_api.py
             }
 
             if not np.isnan(odds_val) and odds_val > 0:
@@ -415,7 +427,7 @@ def main():
     print("PREDICTION SUMMARY")
     print(f"{'=' * 70}")
 
-    for race_id in unique_races[:5]:  # Show first 5 races
+    for race_id in unique_races:
         race_rows = results_df[results_df['race_id'] == race_id].head(10)
         print(f"\n{'─' * 60}")
         print(f"Race: {race_id}")
@@ -438,7 +450,7 @@ def main():
             print(f"  {row['race_id']} | {row['horse_name']:<20} | "
                   f"Win: {row['win_probability']:.1%} vs Implied: {row['implied_prob']:.1%} | "
                   f"Edge: {row['edge']:.2f}x | EV: ${row['ev_per_dollar']:+.3f}/$ | "
-                  f"Odds: {row['dollar_odds']:.1f}")
+                  f"Odds: {row['odds']}")
 
 
 if __name__ == '__main__':
