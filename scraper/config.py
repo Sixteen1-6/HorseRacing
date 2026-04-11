@@ -25,8 +25,6 @@ OUTPUT_COLUMNS = [
 
 CAREER_STAT_COLUMNS = ["num_past_starts", "num_past_wins", "num_past_seconds", "num_past_thirds"]
 GENERAL_COLUMNS = [c for c in OUTPUT_COLUMNS if c not in CAREER_STAT_COLUMNS]
-CAREER_CSV_COLUMNS = ["horse_name"] + CAREER_STAT_COLUMNS
-
 TRACKS = {
     "KEE": "Keeneland", "CD": "Churchill Downs", "GP": "Gulfstream Park",
     "SA": "Santa Anita Park", "AQU": "Aqueduct", "BEL": "Belmont Park",
@@ -41,6 +39,10 @@ TRACKS = {
     "TUP": "Turf Paradise", "BTP": "Belterra Park", "SUN": "Sunland Park",
     "PIM": "Pimlico", "DEL": "Delaware Park", "MTH": "Monmouth Park",
     "CBY": "Canterbury Park", "KD": "Kentucky Downs",
+    "ELP": "Ellis Park", "CNL": "Colonial Downs", "HAW": "Hawthorne",
+    "GPW": "Gulfstream Park West", "WRD": "Will Rogers Downs",
+    "ZIA": "Zia Park", "FON": "Fonner Park", "AP": "Arlington",
+    "ARP": "Arapahoe Park", "EMD": "Emerald Downs", "ALB": "Albuquerque Downs",
 }
 
 USER_AGENTS = [
