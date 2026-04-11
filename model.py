@@ -471,6 +471,8 @@ def load_and_engineer_features(csv_path="test1data.csv"):
         'race_date',      # used for race_id and days_since_last_race, not a feature
         'speed_figure_normalized',  # LEAK: computed from THIS race's finish time
         'win_time_seconds',         # LEAK: winning time of THIS race
+        'dollar_odds',    # LEAK: final odds reflect public knowledge of who wins
+        'odds_category',  # derived from dollar_odds
         # Speed pipeline intermediate cols (not useful as features, just building blocks)
         'raw_speed_rating', 'track_variant', 'speed_figure',
         # Fractional times — correlated with final_time_secs, and leak for current race
