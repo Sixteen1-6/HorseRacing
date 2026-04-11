@@ -118,36 +118,24 @@ def scores_to_probs(scores, group_sizes):
 
 def get_group_sizes(groups):
     """Get ordered group sizes for LambdaRank query groups."""
-    _, counts = np.unique(groups, return_counts=True)
-    # We need sizes in the order they appear, not sorted by group name
-    seen = {}
-    sizes = []
-    for g in groups:
-        if g not in seen:
-            seen[g] = (groups == g).sum()
-            sizes.append(seen[g])
-    return np.array(sizes)
+    # Use pandas for fast ordered group counting
+    _, idx, counts = np.unique(groups, return_index=True, return_counts=True)
+    # Sort by first appearance (idx) to preserve order
+    order = np.argsort(idx)
+    return counts[order]
 
 
 def compute_race_ndcg(y_true, scores, groups, k=3):
     """Compute mean NDCG@k across races."""
     ndcgs = []
+    group_sizes = get_group_sizes(groups)
     idx = 0
-    unique_groups = []
-    seen = set()
-    for g in groups:
-        if g not in seen:
-            unique_groups.append(g)
-            seen.add(g)
-    for g in unique_groups:
-        mask = groups == g
-        size = mask.sum()
+    for size in group_sizes:
         if size < 2:
             idx += size
             continue
         yt = y_true[idx:idx + size]
         sc = scores[idx:idx + size]
-        # Relevance: invert finish position (higher = better)
         max_finish = yt.max()
         relevance = (max_finish + 1 - yt).reshape(1, -1)
         sc_reshaped = sc.reshape(1, -1)
@@ -982,12 +970,7 @@ def evaluate_model(model, calibrator, X_test, finish_test, race_ids_test, dollar
     print(f"└─────────────────────────────────────────────┘")
 
     # ── 3. PER-RACE ACCURACY (informational, not the optimization target) ──
-    unique_races = []
-    seen = set()
-    for g in race_ids_test:
-        if g not in seen:
-            unique_races.append(g)
-            seen.add(g)
+    test_group_sizes = get_group_sizes(race_ids_test)
 
     win_correct = 0
     top3_hits_total = 0
@@ -996,9 +979,7 @@ def evaluate_model(model, calibrator, X_test, finish_test, race_ids_test, dollar
     n_races = 0
     idx = 0
 
-    for race_id in unique_races:
-        mask = race_ids_test == race_id
-        size = mask.sum()
+    for size in test_group_sizes:
         race_scores = scores[idx:idx + size]
         race_finish = finish_test[idx:idx + size]
 
@@ -1041,26 +1022,25 @@ def evaluate_model(model, calibrator, X_test, finish_test, race_ids_test, dollar
             n_bets = 0
 
             idx = 0
-            for race_id in unique_races:
-                mask = race_ids_test == race_id
-                size = mask.sum()
+            for size in test_group_sizes:
                 race_probs = cal_probs[idx:idx + size]
                 race_finish = finish_test[idx:idx + size]
                 race_odds = dollar_odds_test[idx:idx + size]
 
                 # Normalize probs within race
-                race_probs = race_probs / race_probs.sum()
+                prob_sum = race_probs.sum()
+                if prob_sum > 0:
+                    race_probs = race_probs / prob_sum
 
                 for h in range(size):
                     if race_odds[h] <= 0 or np.isnan(race_odds[h]):
                         continue
                     implied = 1.0 / (race_odds[h] + 1)
                     if race_probs[h] > implied * edge_thresh:
-                        # Flat $2 bet for simplicity
                         total_wagered += 2.0
                         n_bets += 1
                         if race_finish[h] == 1:
-                            total_returned += 2.0 * (race_odds[h] + 1)  # win payout
+                            total_returned += 2.0 * (race_odds[h] + 1)
 
                 idx += size
 
