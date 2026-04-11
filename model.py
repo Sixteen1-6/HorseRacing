@@ -469,6 +469,8 @@ def load_and_engineer_features(csv_path="test1data.csv"):
         'post_position',  # replaced by post_position_normalized
         'horse_dob',      # replaced by age
         'race_date',      # used for race_id and days_since_last_race, not a feature
+        'speed_figure_normalized',  # LEAK: computed from THIS race's finish time
+        'win_time_seconds',         # LEAK: winning time of THIS race
         # Speed pipeline intermediate cols (not useful as features, just building blocks)
         'raw_speed_rating', 'track_variant', 'speed_figure',
         # Fractional times — correlated with final_time_secs, and leak for current race
@@ -667,8 +669,8 @@ def run_optuna(X, y_rel, finish, race_ids, cat_features, n_trials=100,
     n_sample = max(500, int(len(unique_races) * subsample_frac))
     if n_sample < len(unique_races):
         rng = np.random.RandomState(42)
-        sampled_races = rng.choice(unique_races, size=n_sample, replace=False)
-        mask = np.isin(race_ids, sampled_races)
+        sampled_races = set(rng.choice(unique_races, size=n_sample, replace=False))
+        mask = np.array([r in sampled_races for r in race_ids])
         X_sub = X[mask].reset_index(drop=True)
         y_sub = y_rel[mask]
         finish_sub = finish[mask]
@@ -1271,9 +1273,15 @@ def main(input_csv=None, quick=False, n_trials=100, subsample=0.30, output_dir=N
     print(f"  Test:  {len(test_races)} races  "
           f"({sorted_dates[cal_end]} → {sorted_dates[-1]})")
 
-    train_mask = np.isin(race_ids, train_races)
-    cal_mask = np.isin(race_ids, cal_races)
-    test_mask = np.isin(race_ids, test_races)
+    print(f"  Splitting data...", flush=True)
+    # Use set lookups instead of np.isin for speed (O(n) vs O(n*m))
+    train_set = set(train_races)
+    cal_set = set(cal_races)
+    test_set = set(test_races)
+
+    train_mask = np.array([r in train_set for r in race_ids])
+    cal_mask = np.array([r in cal_set for r in race_ids])
+    test_mask = np.array([r in test_set for r in race_ids])
 
     X_train, y_rel_train = X[train_mask].reset_index(drop=True), y_rel[train_mask]
     X_cal, y_rel_cal = X[cal_mask].reset_index(drop=True), y_rel[cal_mask]
@@ -1283,9 +1291,9 @@ def main(input_csv=None, quick=False, n_trials=100, subsample=0.30, output_dir=N
     rids_train, rids_cal, rids_test = race_ids[train_mask], race_ids[cal_mask], race_ids[test_mask]
     odds_test = dollar_odds[test_mask] if dollar_odds is not None else None
 
-    print(f"\nTrain: {len(X_train)} rows ({np.unique(rids_train).shape[0]} races)")
-    print(f"Cal:   {len(X_cal)} rows ({np.unique(rids_cal).shape[0]} races)")
-    print(f"Test:  {len(X_test)} rows ({np.unique(rids_test).shape[0]} races)")
+    print(f"  Train: {len(X_train)} rows ({len(train_races)} races)", flush=True)
+    print(f"  Cal:   {len(X_cal)} rows ({len(cal_races)} races)", flush=True)
+    print(f"  Test:  {len(X_test)} rows ({len(test_races)} races)", flush=True)
 
     # --- Optuna ---
     best_params = run_optuna(X_train, y_rel_train, finish_train, rids_train,
