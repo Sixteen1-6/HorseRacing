@@ -495,7 +495,7 @@ def prepare_ranking_data(df):
       - y: relevance labels (higher = better). We use inverted finish position.
       - groups: array of query group sizes (horses per race).
     """
-    # Sort by race_id to ensure contiguous groups
+    print("  [prep] Sorting by race_id...", flush=True)
     df = df.sort_values('race_id').reset_index(drop=True)
 
     # Save dollar_odds separately for ROI simulation (before it becomes a feature)
@@ -505,8 +505,7 @@ def prepare_ranking_data(df):
     finish = df['finish'].values
     race_ids = df['race_id'].values
 
-    # Relevance = max_finish_in_race + 1 - finish
-    # So 1st place gets highest relevance within each race
+    print("  [prep] Computing relevance labels...", flush=True)
     max_by_race = df.groupby('race_id')['finish'].transform('max').values
     y_relevance = (max_by_race + 1 - finish).astype(float)
 
@@ -516,6 +515,7 @@ def prepare_ranking_data(df):
     # Process features for LightGBM
     numerical_cols = X.select_dtypes(include=np.number).columns.tolist()
     categorical_cols = X.select_dtypes(exclude=np.number).columns.tolist()
+    print(f"  [prep] {len(numerical_cols)} numeric, {len(categorical_cols)} categorical cols", flush=True)
 
     # ── Handle missing NUMERIC values ──
     # KEY: LightGBM handles NaN natively. At each tree split it learns
@@ -547,6 +547,7 @@ def prepare_ranking_data(df):
             pct = count / len(X) * 100
             print(f"    {col}: {count:,} missing ({pct:.1f}%)")
 
+    print("  [prep] Processing categorical features...", flush=True)
     MAX_CAT = 50
     for col in categorical_cols:
         if not isinstance(X[col].dtype, pd.CategoricalDtype):
@@ -563,13 +564,14 @@ def prepare_ranking_data(df):
             X.loc[~X[col].isin(top), col] = 'Other'
             X[col] = X[col].cat.remove_unused_categories()
 
-    # Convert categoricals to codes for LightGBM
+    print("  [prep] Converting to codes for LightGBM...", flush=True)
     cat_feature_names = []
     for col in categorical_cols:
         if col in X.columns and isinstance(X[col].dtype, pd.CategoricalDtype):
             cat_feature_names.append(col)
             X[col] = X[col].cat.codes
 
+    print("  [prep] Done.", flush=True)
     return X, y_relevance, finish, race_ids, group_sizes, cat_feature_names, dollar_odds
 
 
@@ -605,6 +607,7 @@ def optuna_objective(trial, X, y_rel, finish, race_ids, cat_features):
     ndcg_scores = []
 
     for fold, (train_idx, val_idx) in enumerate(gkf.split(X, y_rel, groups=race_ids)):
+        print(f"    Trial {trial.number} Fold {fold+1}/5...", end=" ", flush=True)
         X_tr, X_val = X.iloc[train_idx], X.iloc[val_idx]
         y_tr, y_val = y_rel[train_idx], y_rel[val_idx]
         finish_val = finish[val_idx]
@@ -631,6 +634,7 @@ def optuna_objective(trial, X, y_rel, finish, race_ids, cat_features):
         scores = model.predict(X_val)
         ndcg = compute_race_ndcg(finish_val, scores, race_ids_val, k=3)
         ndcg_scores.append(ndcg)
+        print(f"NDCG={ndcg:.4f}", flush=True)
 
         # --- Pruning: report intermediate result after each fold ---
         # If this trial is clearly worse than previous trials, Optuna kills it
