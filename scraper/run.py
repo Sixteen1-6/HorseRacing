@@ -48,6 +48,7 @@ import json
 import os
 import re
 import random
+import shutil
 import subprocess
 import sys
 import time
@@ -70,13 +71,15 @@ except ImportError:
     print("[WARN] pdfplumber not installed — PDF parsing disabled. pip install pdfplumber")
 
 from .config import (OUTPUT_COLUMNS, GENERAL_COLUMNS, CAREER_STAT_COLUMNS,
-                     CAREER_CSV_COLUMNS, TRACKS, USER_AGENTS, VIEWPORTS, is_race_day)
+                     CAREER_CSV_COLUMNS, TRACKS, USER_AGENTS, VIEWPORTS,
+                     generate_targets, PAGE_TIMEOUT)
 from .human_behavior import HumanBehavior
 from .pdf_parser import ChartPDFParser
 from .checkpoint import Checkpoint
+from .parsing import parse_time, map_table_columns
+from .page_utils import setup_page_blocking, is_bot_blocked, search_and_parse_career
 
 # ── Per-worker context variable for log prefixing ────────────
-# Each async worker sets this; the log filter reads it automatically.
 _worker_id: contextvars.ContextVar[str] = contextvars.ContextVar('worker_id', default='')
 
 
@@ -88,13 +91,19 @@ class _WorkerFilter(logging.Filter):
         return True
 
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s]%(worker)s %(message)s",
-    handlers=[logging.StreamHandler(), logging.FileHandler("scraper_v3.log")],
-)
+def _setup_logging(log_file: str = "scraper_v3.log"):
+    """Configure logging with per-process log file to avoid corruption."""
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s]%(worker)s %(message)s",
+        handlers=[logging.StreamHandler(), logging.FileHandler(log_file)],
+    )
+    logger = logging.getLogger("scraper")
+    logger.addFilter(_WorkerFilter())
+    return logger
+
+
 log = logging.getLogger("scraper")
-log.addFilter(_WorkerFilter())
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -154,16 +163,16 @@ class RaceScraper:
         self._meta_file = f"{base}_meta.json"
         # Career stats enrichment
         self._career_stats_enabled = career_stats
-        # Cache: horse_name_lower -> {num_past_starts, num_past_wins, num_past_seconds, num_past_thirds}
-        # Keeps scrape fast when the same horse races repeatedly.
-        self._career_cache: Dict[str, Dict] = {}
-        self._career_locks: Dict[str, asyncio.Lock] = {}
-        self._career_lock_creation = asyncio.Lock()
+        # Cache: horse_name_lower -> {num_past_starts, ...} or asyncio.Event (in-flight)
+        self._career_cache: Dict = {}
         self._career_miss = 0
         self._career_hit = 0
         # Atomic progress counter for concurrent workers
         self._completed_count = 0
         self._run_start_time = 0.0
+        # Exponential backoff for bot detection
+        self._backoff_delay = 0.0
+        self._consecutive_bot_detections = 0
 
     # ── Browser lifecycle ────────────────────────────────────
 
@@ -193,7 +202,6 @@ class RaceScraper:
                         candidates.append(p)
             # Native Linux Chrome
             for name in ["google-chrome", "google-chrome-stable", "chromium-browser", "chromium"]:
-                import shutil
                 found = shutil.which(name)
                 if found:
                     candidates.append(Path(found))
@@ -279,6 +287,7 @@ class RaceScraper:
             # CDP: reuse the existing context, just open a new page
             context = self.browser.contexts[0]
             page = await context.new_page()
+            await setup_page_blocking(page)
             log.debug(f"New CDP page opened")
             return context, page
 
@@ -293,6 +302,7 @@ class RaceScraper:
             window.chrome = { runtime: {} };
         """)
         page = await context.new_page()
+        await setup_page_blocking(page)
         log.debug(f"New context | UA: {ua[ua.rfind(')')-15:ua.rfind(')')]}... | "
                   f"Viewport: {vp['width']}x{vp['height']}")
         return context, page
@@ -415,8 +425,7 @@ class RaceScraper:
         await asyncio.sleep(3)
 
         text = await page.inner_text("body")
-        bot_phrases = ["security check", "captcha", "i am human", "pardon our interruption"]
-        if any(p in text.lower() for p in bot_phrases):
+        if is_bot_blocked(text):
             log.info("=" * 50)
             log.info("CAPTCHA DETECTED in the browser window!")
             log.info("Please solve it manually. Scraper will wait...")
@@ -428,7 +437,7 @@ class RaceScraper:
                 await asyncio.sleep(3)
                 try:
                     text = await page.inner_text("body")
-                    if not any(p in text.lower() for p in bot_phrases):
+                    if not is_bot_blocked(text):
                         log.info("Captcha solved! Continuing scraper...")
                         await asyncio.sleep(2)
                         return
@@ -444,7 +453,6 @@ class RaceScraper:
     @staticmethod
     def _find_chrome_profile() -> Optional[str]:
         """Find the real Chrome user data directory on this system."""
-        import platform
         system = platform.system()
         home = Path.home()
 
@@ -486,153 +494,44 @@ class RaceScraper:
     # /profiles/Results.cfm?type=Horse&refno=... links for each runner.
 
     async def _fetch_horse_career_by_name(self, horse_name: str, page: Page) -> Dict:
-        """Search Equibase by horse name via the homepage form and parse the
-        career stats block from whatever page lands. Returns {} on failure."""
-        result: Dict = {}
-        try:
-            await page.goto("https://www.equibase.com/", wait_until="domcontentloaded", timeout=20000)
-            await asyncio.sleep(0.5)
-            await page.fill("input[name='searchInput']", horse_name)
-            # Click the submit button (JS-driven form → direct profile page for unique matches)
-            try:
-                await page.click("form button[type='submit'], form input[type='submit']", timeout=3000)
-            except Exception:
-                await page.press("input[name='searchInput']", "Enter")
-            await page.wait_for_load_state("domcontentloaded", timeout=15000)
-            await asyncio.sleep(0.8)
-
-            landed = page.url
-            # Case A: direct hit — we're on a horse profile page already.
-            if "type=Horse" in landed and "refno=" in landed:
-                result = await self._parse_career_from_profile(page)
-                return result
-
-            # Case B: multi-match search result — click the first TB match.
-            profile_href = await page.evaluate(
-                r"""
-                () => {
-                    const links = Array.from(document.querySelectorAll('a[href*="type=Horse"]'))
-                        .filter(a => /refno=\d+/i.test(a.href));
-                    if (!links.length) return null;
-                    const tb = links.find(a => /registry=T(?:&|$)/i.test(a.href)) || links[0];
-                    return tb.href;
-                }
-                """
-            )
-            if profile_href:
-                await page.goto(profile_href, wait_until="domcontentloaded", timeout=20000)
-                await asyncio.sleep(0.8)
-                result = await self._parse_career_from_profile(page)
-        except Exception as e:
-            log.debug(f"career search failed for {horse_name!r}: {e}")
-        return result
-
-    async def _parse_career_from_profile(self, page: Page) -> Dict:
-        """Extract career totals from the currently-loaded horse profile page.
-        Tries DOM tables first, then falls back to body-text regex because
-        Equibase sometimes renders the block as a flex layout without a
-        standards-compliant table header row."""
-        # Attempt 1: table with canonical header
-        try:
-            data = await page.evaluate(
-                r"""
-                () => {
-                    const tables = Array.from(document.querySelectorAll('table'))
-                        .filter(t => {
-                            const h = t.rows[0];
-                            if (!h) return false;
-                            const txt = Array.from(h.cells).map(c => c.innerText.trim()).join('|');
-                            return txt === 'Starts|Firsts|Seconds|Thirds|Earnings';
-                        });
-                    return tables.map(t =>
-                        Array.from(t.rows).map(r =>
-                            Array.from(r.cells).map(c => c.innerText.trim())
-                        )
-                    );
-                }
-                """
-            )
-            career_row = None
-            if data and len(data) >= 2 and len(data[1]) > 1:
-                career_row = data[1][1]
-            elif data and len(data) == 1 and len(data[0]) > 1:
-                career_row = data[0][1]
-            if career_row and len(career_row) >= 4:
-                try:
-                    return {
-                        "num_past_starts":  int(re.sub(r"[^\d]", "", career_row[0] or "0") or "0"),
-                        "num_past_wins":    int(re.sub(r"[^\d]", "", career_row[1] or "0") or "0"),
-                        "num_past_seconds": int(re.sub(r"[^\d]", "", career_row[2] or "0") or "0"),
-                        "num_past_thirds":  int(re.sub(r"[^\d]", "", career_row[3] or "0") or "0"),
-                    }
-                except ValueError:
-                    pass
-        except Exception:
-            pass
-
-        # Attempt 2: body-text regex. On Fierceness's profile the text had the form
-        #   "CAREER STATISTICS*\nStarts\tFirsts\tSeconds\tThirds\tEarnings\n14\t7\t2\t2"
-        try:
-            body = await page.evaluate("() => document.body.innerText || ''")
-            m = re.search(
-                r"CAREER\s+STATISTICS\*?[\s\S]{0,200}?"
-                r"Starts\s+Firsts\s+Seconds\s+Thirds\s+Earnings\s+"
-                r"(\d+)\s+(\d+)\s+(\d+)\s+(\d+)",
-                body, re.I,
-            )
-            if m:
-                return {
-                    "num_past_starts":  int(m.group(1)),
-                    "num_past_wins":    int(m.group(2)),
-                    "num_past_seconds": int(m.group(3)),
-                    "num_past_thirds":  int(m.group(4)),
-                }
-        except Exception:
-            pass
-        return {}
+        """Search Equibase by horse name and parse career stats."""
+        return await search_and_parse_career(page, horse_name)
 
     async def _get_career_stats(self, name: str, page: Page) -> Dict:
-        """Fetch career stats with per-horse locking to avoid redundant fetches
-        when multiple concurrent workers encounter the same horse."""
+        """Fetch career stats with caching. Uses an Event-based dedup
+        to avoid redundant in-flight fetches for the same horse."""
         key = name.lower()
 
         # Fast path: already cached
-        if key in self._career_cache:
+        cached = self._career_cache.get(key)
+        if cached is not None and not isinstance(cached, asyncio.Event):
             self._career_hit += 1
-            stats = self._career_cache[key]
-            if stats:
-                log.debug(f"  Career CACHE HIT: {name} "
-                          f"({stats.get('num_past_starts',0)} starts, "
-                          f"{stats.get('num_past_wins',0)} wins)")
-            else:
-                log.debug(f"  Career CACHE HIT: {name} (no data)")
-            return stats
+            return cached
 
-        # Get or create a lock for this horse
-        async with self._career_lock_creation:
-            if key not in self._career_locks:
-                self._career_locks[key] = asyncio.Lock()
-            lock = self._career_locks[key]
+        # Another worker is fetching this horse — wait for it
+        if isinstance(cached, asyncio.Event):
+            self._career_hit += 1
+            await cached.wait()
+            return self._career_cache.get(key) or {}
 
-        # Acquire the per-horse lock; double-check cache after acquiring
-        async with lock:
-            if key in self._career_cache:
-                self._career_hit += 1
-                return self._career_cache[key]
-            self._career_miss += 1
-            log.debug(f"  Career FETCH: {name} (searching Equibase...)")
-            stats = await self._fetch_horse_career_by_name(name, page)
-            self._career_cache[key] = stats
-            if stats:
-                log.debug(f"  Career FOUND: {name} -> "
-                          f"{stats.get('num_past_starts',0)} starts, "
-                          f"{stats.get('num_past_wins',0)} wins, "
-                          f"{stats.get('num_past_seconds',0)} 2nds, "
-                          f"{stats.get('num_past_thirds',0)} 3rds")
-            else:
-                log.debug(f"  Career NOT FOUND: {name} (no profile on Equibase)")
-            await self.human.random_delay(0.4, 1.0)
-            return stats
+        # Mark as in-flight so other workers wait
+        event = asyncio.Event()
+        self._career_cache[key] = event
+        self._career_miss += 1
+        log.debug(f"  Career FETCH: {name} (searching Equibase...)")
+
+        stats = await self._fetch_horse_career_by_name(name, page)
+        self._career_cache[key] = stats if stats else {}
+        event.set()
+
+        if stats:
+            log.debug(f"  Career FOUND: {name} -> "
+                      f"{stats.get('num_past_starts',0)} starts, "
+                      f"{stats.get('num_past_wins',0)} wins")
+        else:
+            log.debug(f"  Career NOT FOUND: {name}")
+        await self.human.random_delay(0.4, 1.0)
+        return stats or {}
 
     async def _enrich_with_career_stats(self, entries: List[Dict], page: Page):
         """Populate career fields on each entry by searching each unique horse
@@ -850,34 +749,37 @@ class RaceScraper:
             await self._start_browser()
             await self._setup_session()
 
-            semaphore = asyncio.Semaphore(career_concurrency)
-            _id_pool = asyncio.Queue()
-            for _i in range(1, career_concurrency + 1):
-                _id_pool.put_nowait(_i)
+            # Queue-based: long-lived pages, not create/destroy per horse
+            queue: asyncio.Queue = asyncio.Queue()
+            for name in missing:
+                queue.put_nowait(name)
 
-            async def worker(idx, name):
+            async def career_worker(wid: int):
                 # Stagger workers so they don't all hit equibase.com at once
-                await asyncio.sleep(idx % career_concurrency * 0.5)
-                async with semaphore:
-                    wid = await _id_pool.get()
-                    if career_concurrency > 1:
-                        _worker_id.set(f"W{wid}")
-                    context, page = await self._create_context()
-                    try:
-                        await self._get_career_stats(name, page)
+                await asyncio.sleep(wid * 0.5)
+                if career_concurrency > 1:
+                    _worker_id.set(f"W{wid}")
+                context, page = await self._create_context()
+                try:
+                    while True:
+                        try:
+                            name = queue.get_nowait()
+                        except asyncio.QueueEmpty:
+                            return
+                        try:
+                            await self._get_career_stats(name, page)
+                        except Exception as e:
+                            log.error(f"Career fetch error for {name!r}: {e}")
                         _log_progress()
-                    except Exception as e:
-                        log.error(f"Career fetch error for {name!r}: {e}")
-                        _log_progress()
-                    finally:
-                        await page.close()
-                        if not self._is_cdp:
-                            await context.close()
-                        _id_pool.put_nowait(wid)
-                        _worker_id.set('')
+                        queue.task_done()
+                finally:
+                    await page.close()
+                    if not self._is_cdp:
+                        await context.close()
+                    _worker_id.set('')
 
             await asyncio.gather(
-                *[worker(i, name) for i, name in enumerate(missing)],
+                *[career_worker(i) for i in range(1, career_concurrency + 1)],
                 return_exceptions=True,
             )
         finally:
@@ -995,22 +897,30 @@ class RaceScraper:
             text = await page.inner_text("body")
             text_preview = text[:200].replace('\n', ' ').strip()
 
-            # Handle bot detection — wait and retry once
-            if "Pardon Our Interruption" in text:
-                log.info(f"{label}: Bot detection triggered, waiting 10s and reloading...")
-                await asyncio.sleep(10)
-                await page.reload(wait_until="domcontentloaded", timeout=15000)
+            # Handle bot detection with exponential backoff
+            if is_bot_blocked(text):
+                self._consecutive_bot_detections += 1
+                # Exponential backoff: 10s, 30s, 60s, 120s, capped at 120s
+                delay = min(10 * (2 ** (self._consecutive_bot_detections - 1)), 120)
+                log.info(f"{label}: Bot detection triggered (#{self._consecutive_bot_detections}), "
+                         f"waiting {delay}s and reloading...")
+                await asyncio.sleep(delay)
+                await page.reload(wait_until="domcontentloaded", timeout=PAGE_TIMEOUT)
                 await self.human.random_delay(3.0, 5.0)
                 text = await page.inner_text("body")
                 text_preview = text[:200].replace('\n', ' ').strip()
-                if "Pardon Our Interruption" in text:
+                if is_bot_blocked(text):
                     log.warning(f"{label}: Bot detection persists after retry")
                     return False
+                # Success after retry — reduce backoff counter
+                self._consecutive_bot_detections = max(0, self._consecutive_bot_detections - 1)
 
             if self._page_has_no_data(text):
                 log.info(f"{label}: No data detected. Page text: {text_preview}")
                 return False
 
+            # Successful page load — reset backoff
+            self._consecutive_bot_detections = 0
             log.info(f"{label}: Page has data! ({len(text)} chars)")
             return True
 
@@ -1559,7 +1469,7 @@ class RaceScraper:
 
             time_m = re.search(r"Winning Time:\s*([\d:.]+)", block_text)
             if time_m:
-                race_meta["final_time_secs"] = self.pdf_parser._parse_time(time_m.group(1))
+                race_meta["final_time_secs"] = parse_time(time_m.group(1))
 
             # Verbose: log race metadata
             log.debug(f"  Race {race_num}: type={race_meta.get('race_type','?')}, "
@@ -1647,30 +1557,7 @@ class RaceScraper:
             return []
 
         headers = [str(h).lower().strip() for h in table[0]]
-        col = {}
-        for i, h in enumerate(headers):
-            if any(k in h for k in ["horse", "name", "starter"]) and "horse" not in col:
-                col["horse"] = i
-            elif any(k in h for k in ["fin", "pos"]) and "finish" not in col:
-                col["finish"] = i
-            elif any(k in h for k in ["pgm", "no.", "#"]) and "pgm" not in col:
-                col["pgm"] = i
-            elif "pp" == h or "post" in h:
-                col["pp"] = i
-            elif "jock" in h:
-                col["jockey"] = i
-            elif "train" in h:
-                col["trainer"] = i
-            elif any(k in h for k in ["wgt", "wt", "weight"]):
-                col["weight"] = i
-            elif "odds" in h or "ml" in h:
-                col["odds"] = i
-            elif "owner" in h:
-                col["owner"] = i
-            elif any(k in h for k in ["comment", "remark"]):
-                col["comment"] = i
-            elif any(k in h for k in ["margin", "btn", "behind", "lengths"]):
-                col["margin"] = i
+        col = map_table_columns(headers)
 
         if "horse" not in col:
             return []
@@ -1817,9 +1704,11 @@ class RaceScraper:
                 log.debug(f"[DONE] {track} {date_str}: page found but no parseable data ({elapsed:.1f}s)")
         else:
             elapsed = time.perf_counter() - t0
-            self.checkpoint.mark(track, date, 0)
+            # Don't mark as "done" — navigation failure is transient and
+            # should be retried on --resume. Record it as "failed" instead.
+            self.checkpoint.mark_failed(track, date)
             self._completed_count += 1
-            log.debug(f"[SKIP] {track} {date_str}: no racing ({elapsed:.1f}s)")
+            log.debug(f"[FAIL] {track} {date_str}: navigation failed ({elapsed:.1f}s) — will retry on --resume")
 
         # Variable delay between pages
         await self.human.random_delay(1.5, 3.5)
@@ -1860,40 +1749,43 @@ class RaceScraper:
                     await self._start_browser()
                     await self._setup_session()
 
-                    semaphore = asyncio.Semaphore(self._concurrency)
+                    # Queue-based worker pool — O(concurrency) memory, not O(targets)
+                    queue: asyncio.Queue = asyncio.Queue()
+                    remaining_count = len(remaining)
+                    for t, d in remaining:
+                        queue.put_nowait((t, d))
 
-                    # Pool of reusable worker IDs (W1..WN) so logs show which slot is active
-                    _id_pool = asyncio.Queue()
-                    for _i in range(1, self._concurrency + 1):
-                        _id_pool.put_nowait(_i)
-
-                    async def worker(track, date):
-                        async with semaphore:
-                            wid = await _id_pool.get()
-                            if self._concurrency > 1:
-                                _worker_id.set(f"W{wid}")
-                            context, page = await self._create_context()
-                            try:
-                                await self._process_race_day(page, track, date, len(remaining))
-                            except Exception as e:
-                                log.error(f"Worker error for {track} {date.strftime('%Y-%m-%d')}: {e}",
-                                          exc_info=True)
-                                self.checkpoint.stats["errors"] += 1
-                            finally:
-                                await page.close()
-                                if not self._is_cdp:
-                                    await context.close()
-                                _id_pool.put_nowait(wid)
-                                _worker_id.set('')
+                    async def worker(wid: int):
+                        if self._concurrency > 1:
+                            _worker_id.set(f"W{wid}")
+                        context, page = await self._create_context()
+                        try:
+                            while True:
+                                try:
+                                    track, date = queue.get_nowait()
+                                except asyncio.QueueEmpty:
+                                    return
+                                try:
+                                    await self._process_race_day(page, track, date, remaining_count)
+                                except Exception as e:
+                                    log.error(f"Worker error for {track} {date.strftime('%Y-%m-%d')}: {e}",
+                                              exc_info=True)
+                                    self.checkpoint.stats["errors"] += 1
+                                queue.task_done()
+                        finally:
+                            await page.close()
+                            if not self._is_cdp:
+                                await context.close()
+                            _worker_id.set('')
 
                     # Start background progress reporter (every 60s)
                     progress_task = asyncio.create_task(
-                        self._progress_reporter(len(remaining), interval=60.0)
+                        self._progress_reporter(remaining_count, interval=60.0)
                     )
 
-                    # Launch all workers; semaphore limits actual concurrency
+                    # Launch N long-lived workers that pull from the queue
                     results = await asyncio.gather(
-                        *[worker(t, d) for t, d in remaining],
+                        *[worker(i) for i in range(1, self._concurrency + 1)],
                         return_exceptions=True,
                     )
 
@@ -1904,11 +1796,10 @@ class RaceScraper:
                     except asyncio.CancelledError:
                         pass
 
-                    # Log any unhandled exceptions from gather
+                    # Log any unhandled exceptions from workers
                     for i, result in enumerate(results):
                         if isinstance(result, Exception):
-                            track, date = remaining[i]
-                            log.error(f"Unhandled exception for {track} {date.strftime('%Y-%m-%d')}: {result}")
+                            log.error(f"Worker {i+1} failed: {result}")
 
                 except KeyboardInterrupt:
                     log.info("Interrupted — saving checkpoint")
@@ -1954,18 +1845,6 @@ class RaceScraper:
 # ═══════════════════════════════════════════════════════════════
 # CLI
 # ═══════════════════════════════════════════════════════════════
-
-def _generate_targets(start_date, end_date, track_codes):
-    """Generate (track, date) targets filtered by race-day calendar."""
-    targets = []
-    d = start_date
-    while d <= end_date:
-        for t in track_codes:
-            if is_race_day(t, d):
-                targets.append((t, d))
-        d += timedelta(days=1)
-    return targets
-
 
 def main():
     p = argparse.ArgumentParser(
@@ -2018,6 +1897,9 @@ Examples:
                    help="Minimum new days beyond cached range to trigger re-scrape "
                         "(default: 7). If the cached general CSV covers the requested "
                         "range within this threshold, scraping is skipped.")
+    p.add_argument("--log-file", default="scraper_v3.log",
+                   help="Log file path (default: scraper_v3.log). "
+                        "Use unique paths per worker to avoid log corruption.")
     p.add_argument("-v", "--verbose", action="store_true",
                    help="Show detailed output: per-horse career lookups, race metadata, "
                         "entry rosters, timing per race day, cache hit rates, "
@@ -2025,10 +1907,14 @@ Examples:
 
     args = p.parse_args()
 
+    # Configure logging with per-process log file
+    _setup_logging(args.log_file)
+    global log
+    log = logging.getLogger("scraper")
+
     # Set log level based on --verbose
     if args.verbose:
         log.setLevel(logging.DEBUG)
-        # Also set the root scraper logger so all modules pick it up
         logging.getLogger("scraper").setLevel(logging.DEBUG)
         log.debug("Verbose mode enabled")
     else:
@@ -2051,14 +1937,14 @@ Examples:
         dates = [datetime.strptime(k.split("_")[1], "%Y%m%d") for k in cp.done]
         tracks_seen = list({k.split("_")[0] for k in cp.done})
         start_date, end_date = min(dates), max(dates) + timedelta(days=30)
-        targets = _generate_targets(start_date, end_date, tracks_seen)
+        targets = generate_targets(start_date, end_date, tracks_seen)
     else:
         if not args.start or not args.end:
             p.error("Use --start and --end (or --resume)")
         start_date = datetime.strptime(args.start, "%Y-%m-%d")
         end_date = datetime.strptime(args.end, "%Y-%m-%d")
         track_codes = args.tracks.split(",") if args.tracks else list(TRACKS.keys())
-        targets = _generate_targets(start_date, end_date, track_codes)
+        targets = generate_targets(start_date, end_date, track_codes)
 
     # Shuffle to avoid hammering one track consecutively
     random.shuffle(targets)

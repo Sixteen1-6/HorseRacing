@@ -35,31 +35,10 @@ from typing import Dict, List, Optional
 import pandas as pd
 from playwright.async_api import async_playwright, Page, BrowserContext
 
+from .page_utils import setup_page_blocking, search_and_parse_career
+
 CACHE_FILE = Path("horse_career_cache.json")
 CAREER_COLS = ["num_past_starts", "num_past_wins", "num_past_seconds", "num_past_thirds"]
-
-# Domain/path fragments to abort during rendering. These are ads, trackers,
-# consent frameworks, real-time bidders, and the Fuse ad platform Equibase
-# uses. Blocking them cuts profile page load from ~3s to ~0.7-1s.
-BLOCKED_FRAGMENTS = (
-    "doubleclick", "googletagmanager", "google-analytics", "googlesyndication",
-    "googleadservices", "adservice.google", "criteo", "pubmatic", "rubicon",
-    "adnxs", "adsrvr", "fuseplatform", "bloodhorse", "uniconsent", "amazon-adsystem",
-    "gumgum", "casalemedia", "sodar", "safeframe", "ingage.tech", "media.net",
-    "richaudience", "kueezrtb", "cootlogix", "lijit", "33across", "openrtb",
-    "pbxai", "unrulymedia", "optable.co", "dns-finder", "adtrafficquality",
-    "servenobid", "smartadserver", "hbopenbid", "pagead", "ad-delivery",
-    "cmp.uniconsent", "scorecardresearch", "taboola", "outbrain", "yieldmo",
-    "analytics.google", "recaptcha", "gstatic.com/recaptcha", "html-load.cc",
-    "/pagead/", "/cm.g.doubleclick", "fonts.googleapis", "fonts.gstatic",
-)
-
-# Resource types to block regardless of domain.
-BLOCKED_RESOURCE_TYPES = {"image", "font", "media", "stylesheet"}
-
-
-def should_block_url(url: str) -> bool:
-    return any(frag in url for frag in BLOCKED_FRAGMENTS)
 
 
 def load_cache() -> Dict[str, Dict]:
@@ -79,86 +58,9 @@ def save_cache(cache: Dict[str, Dict]):
     tmp.replace(CACHE_FILE)
 
 
-def parse_career_from_html(html: str) -> Optional[Dict]:
-    """Extract career totals from a horse profile page's HTML.
-
-    The profile page renders the block as:
-        CAREER STATISTICS*
-        Starts  Firsts  Seconds  Thirds  Earnings
-        14      7       2       2       $1,234,567
-    Strip tags first so the regex works across both table and flex layouts.
-    """
-    text = re.sub(r"<[^>]+>", " ", html)
-    text = re.sub(r"\s+", " ", text)
-    m = re.search(
-        r"CAREER\s+STATISTICS\*?\s*"
-        r"Starts\s+Firsts\s+Seconds\s+Thirds\s+Earnings\s+"
-        r"(\d+)\s+(\d+)\s+(\d+)\s+(\d+)",
-        text, re.I,
-    )
-    if m:
-        return {
-            "num_past_starts":  int(m.group(1)),
-            "num_past_wins":    int(m.group(2)),
-            "num_past_seconds": int(m.group(3)),
-            "num_past_thirds":  int(m.group(4)),
-        }
-    return None
-
-
-async def setup_page_blocking(page: Page):
-    """Intercept and abort ads/trackers on this page."""
-    async def handler(route):
-        req = route.request
-        try:
-            if req.resource_type in BLOCKED_RESOURCE_TYPES:
-                await route.abort()
-                return
-            if should_block_url(req.url):
-                await route.abort()
-                return
-            await route.continue_()
-        except Exception:
-            pass
-    await page.route("**/*", handler)
-
-
 async def fetch_one(page: Page, horse_name: str) -> Dict:
-    """Fetch one horse's career totals via the homepage form-click flow.
-    Returns {} on any failure.
-
-    Handles two landing outcomes:
-    - Direct profile hit: URL contains `refno=` — parse inline.
-    - Disambiguation list: URL has no `refno` — pick the first candidate
-      `refno=` link, navigate to it, and parse. This is a heuristic for
-      horses that share names; we accept the most-listed candidate.
-    """
-    try:
-        await page.goto("https://www.equibase.com/", wait_until="domcontentloaded", timeout=15000)
-        await page.fill("input[name='searchInput']", horse_name, timeout=5000)
-        try:
-            await page.click("form button[type='submit'], form input[type='submit']", timeout=3000)
-        except Exception:
-            await page.press("input[name='searchInput']", "Enter")
-        await page.wait_for_load_state("domcontentloaded", timeout=10000)
-        # Small settle for JS-rendered career block.
-        await asyncio.sleep(0.6)
-
-        # Disambiguation fallback.
-        if "refno=" not in page.url:
-            html = await page.content()
-            m = re.search(r'href="(/profiles/Results\.cfm\?type=Horse[^"]*refno=\d+[^"]*)"', html)
-            if not m:
-                return {}
-            href = m.group(1).replace("&amp;", "&")
-            await page.goto("https://www.equibase.com" + href,
-                            wait_until="domcontentloaded", timeout=15000)
-            await asyncio.sleep(0.6)
-
-        html = await page.content()
-    except Exception:
-        return {}
-    return parse_career_from_html(html) or {}
+    """Fetch one horse's career totals via the shared search+parse flow."""
+    return await search_and_parse_career(page, horse_name)
 
 
 async def worker(wid: int, ctx: BrowserContext, queue: asyncio.Queue,

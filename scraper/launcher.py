@@ -22,29 +22,17 @@ import subprocess
 import sys
 import time
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
-from typing import List, Tuple
+from typing import List
 
-from .config import TRACKS, is_race_day, OUTPUT_COLUMNS
+from .config import TRACKS, generate_targets, OUTPUT_COLUMNS
 
 log = logging.getLogger("launcher")
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
 )
-
-
-def generate_targets(start_date, end_date, track_codes) -> List[Tuple[str, str]]:
-    """Generate (track_code, date_str) targets filtered by race-day calendar."""
-    targets = []
-    d = start_date
-    while d <= end_date:
-        for t in track_codes:
-            if is_race_day(t, d):
-                targets.append((t, d.strftime("%Y-%m-%d")))
-        d += timedelta(days=1)
-    return targets
 
 
 def partition_targets(targets: List, n_workers: int) -> List[List]:
@@ -113,8 +101,9 @@ Examples:
     end_date = datetime.strptime(args.end, "%Y-%m-%d")
     track_codes = args.tracks.split(",") if args.tracks else list(TRACKS.keys())
 
-    # Generate all targets
-    all_targets = generate_targets(start_date, end_date, track_codes)
+    # Generate all targets (returns datetime objects, convert to strings for JSON)
+    all_targets_dt = generate_targets(start_date, end_date, track_codes)
+    all_targets = [(t, d.strftime("%Y-%m-%d")) for t, d in all_targets_dt]
     log.info(f"Total targets: {len(all_targets):,} across {len(track_codes)} tracks")
 
     # Partition across workers
@@ -142,12 +131,14 @@ Examples:
 
         log.info(f"Worker {i}: {len(partition):,} targets -> {output_file}")
 
+        log_file = work_dir / f"scraper_worker_{i}.log"
         cmd = [
             sys.executable, "-m", "scraper",
             "--targets-file", str(targets_file),
             "--output", str(output_file),
             "--checkpoint", str(checkpoint_file),
             "--concurrency", str(args.concurrency),
+            "--log-file", str(log_file),
         ]
         if args.no_google:
             cmd.append("--no-google")

@@ -95,6 +95,34 @@ def _load_track_race_dates():
 _load_track_race_dates()
 
 
+# ═══════════════════════════════════════════════════════════════
+# TIMEOUT CONSTANTS (milliseconds)
+# ═══════════════════════════════════════════════════════════════
+
+PAGE_TIMEOUT = 15000
+NAV_TIMEOUT = 20000
+PDF_TIMEOUT = 30000
+CLICK_TIMEOUT = 3000
+FORM_TIMEOUT = 5000
+
+
+# ═══════════════════════════════════════════════════════════════
+# TARGET GENERATION
+# ═══════════════════════════════════════════════════════════════
+
+def generate_targets(start_date, end_date, track_codes):
+    """Generate (track_code, datetime) targets filtered by race-day calendar."""
+    from datetime import timedelta
+    targets = []
+    d = start_date
+    while d <= end_date:
+        for t in track_codes:
+            if is_race_day(t, d):
+                targets.append((t, d))
+        d += timedelta(days=1)
+    return targets
+
+
 def is_race_day(track_code: str, date) -> bool:
     """Return True if the track actually ran a card on `date`.
 

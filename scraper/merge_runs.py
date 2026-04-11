@@ -15,27 +15,24 @@ Outputs:
 
 from __future__ import annotations
 
+import argparse
+import glob
 import sys
 from pathlib import Path
 
 import pandas as pd
 
 
-SCRAPE_FILES = [
-    "races_pc1a.csv", "races_pc1b.csv",
-    "races_pc2a.csv", "races_pc2b.csv",
-    "races_pc3a.csv", "races_pc3b.csv",
-    "races_pc4a.csv", "races_pc4b.csv",
-]
-
-HACKATHON_PATH = Path("hackdata_tmp/hackathon_data/all_tracks_hackathon.csv")
-MERGED_PATH = Path("races_2024_2026_merged.csv")
-COMBINED_PATH = Path("races_2023_2026_combined.csv")
+# Defaults — used when no CLI args are given
+DEFAULT_SCRAPE_PATTERN = "races_pc*.csv"
+DEFAULT_HACKATHON_PATH = Path("hackdata_tmp/hackathon_data/all_tracks_hackathon.csv")
+DEFAULT_MERGED_PATH = Path("races_2024_2026_merged.csv")
+DEFAULT_COMBINED_PATH = Path("races_2023_2026_combined.csv")
 
 
-def load_scrape_files() -> pd.DataFrame:
+def load_scrape_files(file_list) -> pd.DataFrame:
     frames = []
-    for name in SCRAPE_FILES:
+    for name in file_list:
         p = Path(name)
         if not p.exists():
             print(f"  [skip] {name} not found")
@@ -45,7 +42,7 @@ def load_scrape_files() -> pd.DataFrame:
         df["__source"] = name
         frames.append(df)
     if not frames:
-        sys.exit("No scrape files found. Copy races_pc*.csv files here first.")
+        sys.exit("No scrape files found. Pass --input with a glob pattern or file list.")
     combined = pd.concat(frames, ignore_index=True, sort=False)
     print(f"\n  merged raw: {len(combined):,} rows")
     return combined
@@ -68,22 +65,22 @@ def dedupe(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def merge_scrape() -> pd.DataFrame:
-    print("=== Merging 8 scrape files ===")
-    df = load_scrape_files()
+def merge_scrape(file_list, merged_path) -> pd.DataFrame:
+    print(f"=== Merging {len(file_list)} scrape files ===")
+    df = load_scrape_files(file_list)
     df = dedupe(df)
     df = df.drop(columns=["__source"], errors="ignore")
-    df.to_csv(MERGED_PATH, index=False)
-    print(f"\n  wrote {MERGED_PATH} ({len(df):,} rows)")
+    df.to_csv(merged_path, index=False)
+    print(f"\n  wrote {merged_path} ({len(df):,} rows)")
     return df
 
 
-def combine_with_hackathon(scraped: pd.DataFrame) -> None:
+def combine_with_hackathon(scraped: pd.DataFrame, hackathon_path, combined_path) -> None:
     print("\n=== Combining with 2023 hackathon data ===")
-    if not HACKATHON_PATH.exists():
-        print(f"  [skip] {HACKATHON_PATH} not found — final combine skipped")
+    if not hackathon_path.exists():
+        print(f"  [skip] {hackathon_path} not found — final combine skipped")
         return
-    hk = pd.read_csv(HACKATHON_PATH, low_memory=False)
+    hk = pd.read_csv(hackathon_path, low_memory=False)
     print(f"  hackathon rows: {len(hk):,}")
     print(f"  scraped  rows: {len(scraped):,}")
 
@@ -102,13 +99,32 @@ def combine_with_hackathon(scraped: pd.DataFrame) -> None:
 
     combined = pd.concat([hk[shared], scraped[shared]], ignore_index=True, sort=False)
     combined = dedupe(combined)
-    combined.to_csv(COMBINED_PATH, index=False)
-    print(f"\n  wrote {COMBINED_PATH} ({len(combined):,} rows)")
+    combined.to_csv(combined_path, index=False)
+    print(f"\n  wrote {combined_path} ({len(combined):,} rows)")
 
 
 def main():
-    scraped = merge_scrape()
-    combine_with_hackathon(scraped)
+    p = argparse.ArgumentParser(description="Merge distributed scrape CSVs")
+    p.add_argument("--input", default=DEFAULT_SCRAPE_PATTERN,
+                   help="Glob pattern or comma-separated file list (default: races_pc*.csv)")
+    p.add_argument("--output", type=Path, default=DEFAULT_MERGED_PATH,
+                   help="Merged output file")
+    p.add_argument("--hackathon", type=Path, default=DEFAULT_HACKATHON_PATH,
+                   help="Hackathon CSV to combine with")
+    p.add_argument("--combined", type=Path, default=DEFAULT_COMBINED_PATH,
+                   help="Combined output file")
+    args = p.parse_args()
+
+    # Resolve input files from glob or comma-separated list
+    if "," in args.input:
+        file_list = [f.strip() for f in args.input.split(",")]
+    else:
+        file_list = sorted(glob.glob(args.input))
+        if not file_list:
+            sys.exit(f"No files matched pattern: {args.input}")
+
+    scraped = merge_scrape(file_list, args.output)
+    combine_with_hackathon(scraped, args.hackathon, args.combined)
     print("\ndone.")
 
 

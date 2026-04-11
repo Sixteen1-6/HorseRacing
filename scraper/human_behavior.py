@@ -65,13 +65,21 @@ class HumanBehavior:
         """
         Occasionally visit an unrelated page (mimics tabbed browsing).
         Called randomly ~5% of the time between scrape targets.
+        Saves and restores the original page URL.
         """
         distractions = [
             "https://www.google.com",
             "https://www.weather.com",
             "https://news.ycombinator.com",
         ]
+        saved_url = page.url
         url = random.choice(distractions)
         log.debug(f"Distraction browse: {url}")
         await page.goto(url, wait_until="domcontentloaded", timeout=15000)
         await asyncio.sleep(random.uniform(2, 5))
+        # Restore previous page so caller's state is preserved
+        if saved_url and not saved_url.startswith("about:"):
+            try:
+                await page.goto(saved_url, wait_until="domcontentloaded", timeout=15000)
+            except Exception:
+                pass

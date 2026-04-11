@@ -30,11 +30,10 @@ from typing import Dict, List, Optional
 
 from playwright.async_api import async_playwright
 
-# Reuse the human-behavior + track table from the chart scraper
 from .human_behavior import HumanBehavior
 from .config import TRACKS
-
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+from .parsing import parse_distance_to_furlongs, parse_odds, map_table_columns
+from .page_utils import parse_career_stats
 
 
 TEST_DATA_COLUMNS = [
@@ -45,89 +44,6 @@ TEST_DATA_COLUMNS = [
     "last_race_date", "last_race_finish", "track_condition", "breed", "course",
     "last_race_number",
 ]
-
-# Convert spelled-out distances to furlongs.
-# Equibase entries use phrases like "Seven Furlongs", "One Mile",
-# "One And One Sixteenth Miles", "Five And One Half Furlongs".
-WORD_NUMS = {
-    "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
-    "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
-    "eleven": 11, "twelve": 12,
-}
-FRACTIONS = {
-    "half": 0.5,
-    "sixteenth": 1 / 16,
-    "eighth": 1 / 8,
-    "quarter": 0.25,
-    "third": 1 / 3,
-    "three quarters": 0.75,
-    "three sixteenths": 3 / 16,
-    "five sixteenths": 5 / 16,
-    "seven sixteenths": 7 / 16,
-}
-
-
-def parse_distance_to_furlongs(text: str) -> Optional[float]:
-    """Convert e.g. 'One And One Sixteenth Miles' -> 8.5 (furlongs)."""
-    if not text:
-        return None
-    t = text.lower().strip().rstrip(".")
-
-    # Detect unit
-    is_miles = "mile" in t
-    is_furlongs = "furlong" in t
-    if not (is_miles or is_furlongs):
-        return None
-
-    # Strip unit
-    t = re.sub(r"\b(miles?|furlongs?|yards?)\b", "", t).strip()
-
-    # Handle "X And Y Z" → X + Y/Z parts (e.g. "one and one sixteenth")
-    base = 0.0
-    parts = t.split(" and ")
-    for part in parts:
-        part = part.strip()
-        if not part:
-            continue
-        # Try fractions first (longer phrases)
-        matched_frac = None
-        for k in sorted(FRACTIONS.keys(), key=len, reverse=True):
-            if part.endswith(k):
-                matched_frac = k
-                break
-        if matched_frac:
-            num_text = part[: -len(matched_frac)].strip()
-            num_val = WORD_NUMS.get(num_text, 1) if num_text else 1
-            base += num_val * FRACTIONS[matched_frac]
-        else:
-            # Whole-number word, e.g. "seven"
-            num_val = WORD_NUMS.get(part)
-            if num_val is not None:
-                base += num_val
-            else:
-                # Could be a digit
-                try:
-                    base += float(part)
-                except ValueError:
-                    pass
-
-    if base == 0:
-        return None
-    return base * 8.0 if is_miles else base
-
-
-def parse_ml_odds(text: str) -> str:
-    """Convert '6/1' -> '6', '9/5' -> '1.8', etc."""
-    text = (text or "").strip()
-    m = re.match(r"(\d+(?:\.\d+)?)\s*/\s*(\d+(?:\.\d+)?)", text)
-    if m:
-        try:
-            n, d = float(m.group(1)), float(m.group(2))
-            return str(round(n / d, 2)).rstrip("0").rstrip(".")
-        except ValueError:
-            pass
-    return text
-
 
 def parse_age_sex(text: str) -> tuple:
     """'4/G' -> (4, 'G')"""
@@ -341,28 +257,7 @@ class EntriesScraper:
             return []
 
         headers = [h.strip() for h in rows[header_idx]]
-        # Map header name → index
-        col = {}
-        for i, h in enumerate(headers):
-            hl = h.lower()
-            if hl == "p#" or hl == "pgm":
-                col["pgm"] = i
-            elif hl == "pp":
-                col["pp"] = i
-            elif "horse" in hl:
-                col["horse"] = i
-            elif "a/s" in hl or "age" in hl:
-                col["age_sex"] = i
-            elif hl == "med":
-                col["med"] = i
-            elif "jock" in hl:
-                col["jockey"] = i
-            elif hl == "wgt" or "weight" in hl:
-                col["weight"] = i
-            elif "train" in hl:
-                col["trainer"] = i
-            elif "m/l" in hl:
-                col["ml"] = i
+        col = map_table_columns(headers)
 
         if "horse" not in col:
             return []
@@ -401,7 +296,7 @@ class EntriesScraper:
                 "age": age_val,
                 "sex": sex_val,
                 "medication": cell("med"),
-                "dollar_odds": parse_ml_odds(cell("ml")),
+                "dollar_odds": parse_odds(cell("odds")),
                 "breed": "TB",
                 "course": "M",
                 # Past-performance fields filled later
@@ -433,55 +328,57 @@ class EntriesScraper:
             urls = urls[: self.max_horses]
         print(f"[entries] Enriching {len(urls)} horses with past-performance data...")
 
-        for n, (i, entry) in enumerate(urls, 1):
-            try:
-                pp = await self._fetch_horse_pp(entry["_horse_url"])
-                # Retry once if first attempt got nothing (race-condition on
-                # first navigation from entries page)
-                if not pp.get("num_past_starts") and not pp.get("last_race_date"):
-                    await asyncio.sleep(2.0)
-                    pp = await self._fetch_horse_pp(entry["_horse_url"])
-                entry.update(pp)
-                print(f"  [{n}/{len(urls)}] {entry['horse_name']:30s} "
-                      f"starts={pp.get('num_past_starts','')} "
-                      f"last={pp.get('last_race_date','')}/{pp.get('last_race_finish','')}")
-            except Exception as e:
-                print(f"  [{n}/{len(urls)}] {entry['horse_name']:30s} FAILED: {e}")
-            await self.human.random_delay(0.8, 1.8)
+        sem = asyncio.Semaphore(4)
+        completed = [0]
 
-    async def _fetch_horse_pp(self, url: str) -> Dict:
-        await self.page.goto(url, wait_until="domcontentloaded", timeout=20000)
+        async def fetch_one_entry(i, entry):
+            async with sem:
+                page = await self.context.new_page()
+                try:
+                    pp = await self._fetch_horse_pp(entry["_horse_url"], page)
+                    if not pp.get("num_past_starts") and not pp.get("last_race_date"):
+                        await asyncio.sleep(2.0)
+                        pp = await self._fetch_horse_pp(entry["_horse_url"], page)
+                    entry.update(pp)
+                    completed[0] += 1
+                    print(f"  [{completed[0]}/{len(urls)}] {entry['horse_name']:30s} "
+                          f"starts={pp.get('num_past_starts','')} "
+                          f"last={pp.get('last_race_date','')}/{pp.get('last_race_finish','')}")
+                except Exception as e:
+                    completed[0] += 1
+                    print(f"  [{completed[0]}/{len(urls)}] {entry['horse_name']:30s} FAILED: {e}")
+                finally:
+                    await page.close()
+                await self.human.random_delay(0.8, 1.8)
+
+        await asyncio.gather(
+            *[fetch_one_entry(i, entry) for i, entry in urls],
+            return_exceptions=True,
+        )
+
+    async def _fetch_horse_pp(self, url: str, page=None) -> Dict:
+        if page is None:
+            page = self.page
+        await page.goto(url, wait_until="domcontentloaded", timeout=20000)
         await asyncio.sleep(1.5)
 
-        data = await self.page.evaluate(
+        result = {}
+
+        # Career stats (shared implementation)
+        career = await parse_career_stats(page)
+        result.update(career)
+
+        # Last race info + breed (entries-specific)
+        data = await page.evaluate(
             r"""
             () => {
-                const out = {bodyText: document.body.innerText};
-
-                // Career stats: look for the table whose header is exactly
-                // [Starts, Firsts, Seconds, Thirds, Earnings] and take the
-                // SECOND such occurrence (the first is the current-year stats)
-                const careerTables = Array.from(document.querySelectorAll('table'))
-                    .filter(t => {
-                        const h = t.rows[0];
-                        if (!h) return false;
-                        const txt = Array.from(h.cells).map(c => c.innerText.trim()).join('|');
-                        return txt === 'Starts|Firsts|Seconds|Thirds|Earnings';
-                    });
-                out.careerTables = careerTables.map(t =>
-                    Array.from(t.rows).map(r =>
-                        Array.from(r.cells).map(c => c.innerText.trim())
-                    )
-                );
-
-                // Results table (most recent races)
+                const out = {};
                 const results = document.querySelector('table.results, table.phone-collapse.results');
                 if (results) {
                     out.results = Array.from(results.rows).map(r =>
                         Array.from(r.cells).map(c => c.innerText.trim())
                     );
                 } else {
-                    // Fallback: any table whose first column header is "Track" and includes "Finish"
                     const t = Array.from(document.querySelectorAll('table')).find(t => {
                         const h = t.rows[0];
                         if (!h) return false;
@@ -492,37 +389,16 @@ class EntriesScraper:
                         Array.from(r.cells).map(c => c.innerText.trim())
                     ) : null;
                 }
-
+                out.bodyText = document.body.innerText;
                 return out;
             }
             """
         )
 
-        result = {}
-
-        # Parse career stats — second occurrence is the all-time totals
-        career_tables = data.get("careerTables") or []
-        career_row = None
-        if len(career_tables) >= 2:
-            # Header + 1 data row
-            career_row = career_tables[1][1] if len(career_tables[1]) > 1 else None
-        elif len(career_tables) == 1:
-            career_row = career_tables[0][1] if len(career_tables[0]) > 1 else None
-
-        if career_row and len(career_row) >= 4:
-            try:
-                result["num_past_starts"] = int(re.sub(r"[^\d]", "", career_row[0] or "0"))
-                result["num_past_wins"] = int(re.sub(r"[^\d]", "", career_row[1] or "0"))
-                result["num_past_seconds"] = int(re.sub(r"[^\d]", "", career_row[2] or "0"))
-                result["num_past_thirds"] = int(re.sub(r"[^\d]", "", career_row[3] or "0"))
-            except ValueError:
-                pass
-
         # Last race: first row of results table after header
         results_rows = data.get("results") or []
         if len(results_rows) >= 2:
             header = [h.lower() for h in results_rows[0]]
-            # Map columns
             try:
                 date_idx = next(i for i, h in enumerate(header) if "date" in h)
                 race_idx = next(i for i, h in enumerate(header) if h == "race")
@@ -534,7 +410,6 @@ class EntriesScraper:
                 last = results_rows[1]
                 if date_idx < len(last):
                     raw_date = last[date_idx]
-                    # Convert M/D/YYYY -> YYYY-MM-DD
                     try:
                         d = datetime.strptime(raw_date, "%m/%d/%Y")
                         result["last_race_date"] = d.strftime("%Y-%m-%d")
@@ -545,7 +420,7 @@ class EntriesScraper:
                 if finish_idx is not None and finish_idx < len(last):
                     result["last_race_finish"] = last[finish_idx]
 
-        # Breed from horse header text: "TB, CH, G, FOALED ..."
+        # Breed from horse header text
         body = data.get("bodyText", "")
         breed_m = re.search(r"\b(TB|QH|AR|SB|PB)\b,", body)
         if breed_m:
@@ -591,6 +466,7 @@ async def amain(args):
 
 
 def main():
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
     p = argparse.ArgumentParser(description="Scrape pre-race entries from Equibase")
     p.add_argument("--track", required=True, help="Track code (e.g. KEE)")
     p.add_argument("--date", required=True, help="Race date YYYY-MM-DD")

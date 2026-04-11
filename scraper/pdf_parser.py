@@ -9,6 +9,7 @@ from datetime import datetime
 from typing import List, Optional, Dict, Tuple
 
 from .config import OUTPUT_COLUMNS, TRACKS
+from .parsing import parse_distance_integer, map_table_columns, parse_odds, parse_time
 
 try:
     import pdfplumber
@@ -99,16 +100,6 @@ class ChartPDFParser:
         "firm": "FM", "yielding": "YL", "soft": "SF", "heavy": "HY",
         "wetfast": "WF", "wet fast": "WF", "slow": "SL", "frozen": "FZ",
     }
-    WORD_NUM = {
-        "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
-        "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
-        "eleven": 11, "twelve": 12,
-    }
-    WORD_FRAC = {
-        "half": 0.5, "quarter": 0.25, "threequarters": 0.75,
-        "sixteenth": 1/16, "eighth": 1/8, "threeeighths": 3/8,
-        "onesixteenth": 1/16, "oneeighth": 1/8,
-    }
 
     def _split_camel(self, text: str) -> str:
         """Insert spaces in CamelCase: 'BourbonTown' -> 'Bourbon Town'.
@@ -125,81 +116,6 @@ class ChartPDFParser:
         s = re.sub(r"\bLa\s+([A-Z])", r"La\1", s)
         s = re.sub(r"\bO'\s*([A-Z])", r"O'\1", s)
         return s
-
-    def _parse_distance_integer(self, raw: str) -> Tuple[int, str]:
-        """
-        Convert Equibase distance text to (integer_distance, unit).
-        F unit = furlongs*100 (plus any extra yards).
-        Y unit = raw yards.
-
-        Examples:
-          'FourAndOneHalfFurlongs' -> (450, 'F')
-          'SevenFurlongs'          -> (700, 'F')
-          'OneMile'                -> (800, 'F')
-          'OneAndOneSixteenthMiles'-> (850, 'F')
-          'OneAndOneEighthMiles'   -> (900, 'F')
-          'TwoHundredAndTwentyYards' -> (220, 'Y')
-        """
-        if not raw:
-            return (0, "F")
-        t = raw.lower().replace(" ", "").replace("-", "")
-        # Strip surface tail
-        t = re.sub(r"onthe(dirt|turf|allweather|synthetic).*$", "", t)
-        t = re.sub(r"(innerturf|outerturf|turfcourse|dirtcourse).*$", "", t)
-
-        is_mile = "mile" in t
-        is_yard = "yard" in t and "furlong" not in t and "mile" not in t
-        t_clean = re.sub(r"(furlongs?|miles?|yards?)", "", t)
-
-        # About prefix
-        t_clean = t_clean.replace("about", "")
-
-        # Parse "ABC and DEF" into whole + fraction
-        whole = 0
-        frac = 0.0
-        # Split on 'and'
-        parts = t_clean.split("and")
-        for i, part in enumerate(parts):
-            part = part.strip()
-            if not part:
-                continue
-            # First part could be integer word or fraction word
-            if i == 0:
-                # Whole number
-                if part in self.WORD_NUM:
-                    whole = self.WORD_NUM[part]
-                else:
-                    # Try to parse composite like 'twohundredandtwenty' collapsed
-                    m = re.match(r"(" + "|".join(self.WORD_NUM.keys()) + r")hundred", part)
-                    if m:
-                        whole = self.WORD_NUM[m.group(1)] * 100
-                        rest = part[len(m.group(0)):]
-                        if rest in self.WORD_NUM:
-                            whole += self.WORD_NUM[rest]
-            else:
-                # Subsequent parts: "one half" etc
-                # "onehalf" or "onesixteenth"
-                if part in self.WORD_FRAC:
-                    frac += self.WORD_FRAC[part]
-                    continue
-                # Try numerator+denominator
-                for key, val in self.WORD_FRAC.items():
-                    if part.endswith(key):
-                        num_word = part[:-len(key)]
-                        n = self.WORD_NUM.get(num_word, 1)
-                        frac += n * val
-                        break
-
-        if is_yard:
-            # Distance is yards
-            return (int(round(whole + frac * 1)), "Y")
-        if is_mile:
-            # Miles → furlongs*100
-            furlongs = (whole + frac) * 8
-            return (int(round(furlongs * 100)), "F")
-        # Default furlongs
-        furlongs = whole + frac
-        return (int(round(furlongs * 100)), "F")
 
     def _parse_course(self, raw_block: str) -> str:
         """Determine course from block text. Returns Dirt/Turf/Inner turf/Outer turf/Hurdle/Timber."""
@@ -408,7 +324,7 @@ class ChartPDFParser:
             # Distance: 'Distance:FourAndOneHalfFurlongsOnTheDirtCurrentTrackRecord:...'
             dist_m = re.search(r"Distance:([A-Za-z]+?)(?:CurrentTrackRecord|$)", block)
             dist_raw = dist_m.group(1) if dist_m else ""
-            dist_int, dist_unit = self._parse_distance_integer(dist_raw)
+            dist_int, dist_unit = parse_distance_integer(dist_raw)
 
             course = self._parse_course(dist_raw + " " + block[:2000])
             surface = self._parse_surface(course)
@@ -458,7 +374,7 @@ class ChartPDFParser:
             frac_m = re.search(r"FractionalTimes:([\d\.\s:]+?)FinalTime:", block)
             frac_times_raw = frac_m.group(1).strip().split() if frac_m else []
             final_m = re.search(r"FinalTime:([\d:.]+)", block)
-            win_time = self._parse_time(final_m.group(1)) if final_m else ""
+            win_time = parse_time(final_m.group(1)) if final_m else ""
 
             # Winner details block: 'Winner: Suspicions,BayColt,byCornicheoutofManaoag...'
             winner_m = re.search(r"Winner:\s*([^\n]+?)(?=Breeder:|Owner:|\n)", block)
@@ -495,10 +411,10 @@ class ChartPDFParser:
                 "_trainer_map": trainer_map,
                 "_owner_map": owner_map,
                 "claimed_price": claimed_price,
-                "frac_1": self._parse_time(frac_times_raw[0]) if len(frac_times_raw) > 0 else "",
-                "frac_2": self._parse_time(frac_times_raw[1]) if len(frac_times_raw) > 1 else "",
-                "frac_3": self._parse_time(frac_times_raw[2]) if len(frac_times_raw) > 2 else "",
-                "frac_4": self._parse_time(frac_times_raw[3]) if len(frac_times_raw) > 3 else "",
+                "frac_1": parse_time(frac_times_raw[0]) if len(frac_times_raw) > 0 else "",
+                "frac_2": parse_time(frac_times_raw[1]) if len(frac_times_raw) > 1 else "",
+                "frac_3": parse_time(frac_times_raw[2]) if len(frac_times_raw) > 2 else "",
+                "frac_4": parse_time(frac_times_raw[3]) if len(frac_times_raw) > 3 else "",
                 "final_time_secs": win_time,
             }
 
@@ -530,45 +446,7 @@ class ChartPDFParser:
             if not (has_horse or has_pgm):
                 continue
 
-            # Map columns
-            col = {}
-            for i, h in enumerate(header):
-                if "horse" in h or "name" in h:
-                    col["horse"] = i
-                elif "pgm" in h or "no." in h:
-                    col["pgm"] = i
-                elif "pp" == h or "post" in h:
-                    col["pp"] = i
-                elif "jock" in h:
-                    col["jockey"] = i
-                elif "train" in h:
-                    col["trainer"] = i
-                elif "wgt" in h or "wt" in h or "weight" in h:
-                    col["weight"] = i
-                elif "odds" in h or "ml" in h:
-                    col["odds"] = i
-                elif "fin" in h:
-                    col["finish"] = i
-                elif "comment" in h or "remark" in h:
-                    col["comment"] = i
-                elif "owner" in h:
-                    col["owner"] = i
-                elif "margin" in h or "btn" in h or "behind" in h:
-                    col["margin"] = i
-                elif "1st" in h or "first" in h:
-                    col["pos_1st"] = i
-                elif "2nd" in h or "second" in h:
-                    col["pos_2nd"] = i
-                elif "str" in h and "start" not in h:
-                    col["pos_str"] = i
-                elif "start" in h:
-                    col["pos_start"] = i
-                elif "med" in h:
-                    col["med"] = i
-                elif "age" in h:
-                    col["age"] = i
-                elif "sex" in h:
-                    col["sex"] = i
+            col = map_table_columns(header)
 
             if "horse" not in col:
                 continue
@@ -596,7 +474,7 @@ class ChartPDFParser:
                 entry["trainer"] = get("trainer")
                 entry["owner"] = get("owner")
                 entry["weight"] = get("weight")
-                entry["dollar_odds"] = self._clean_odds(get("odds"))
+                entry["dollar_odds"] = parse_odds(get("odds"))
                 entry["comment"] = get("comment")
                 entry["medication"] = get("med")
                 entry["age"] = get("age")
@@ -753,18 +631,6 @@ class ChartPDFParser:
             return whole + num / den
         return ""
 
-    def _parse_time(self, text):
-        if not text:
-            return ""
-        text = str(text).strip().lstrip(":")
-        try:
-            if ":" in text:
-                parts = text.split(":")
-                return round(int(parts[0]) * 60 + float(parts[1]), 2)
-            return round(float(text), 2)
-        except ValueError:
-            return ""
-
     def _parse_margin(self, text):
         if not text:
             return ""
@@ -800,10 +666,3 @@ class ChartPDFParser:
             return self._parse_margin(parts[-1])
         return ""
 
-    def _clean_odds(self, text):
-        text = str(text).strip().replace("$", "")
-        m = re.match(r"(\d+)-(\d+)", text)
-        if m:
-            return str(round(int(m.group(1)) / int(m.group(2)), 2))
-        m = re.search(r"[\d.]+", text)
-        return m.group(0) if m else ""
