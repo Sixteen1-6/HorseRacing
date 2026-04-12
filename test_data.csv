@@ -1,120 +1,116 @@
 race_number,horse_name,jockey,trainer,weight,age,post_position,race_type,purse,surface,distance,distance_unit,dollar_odds,sex,num_past_starts,num_past_wins,num_past_seconds,num_past_thirds,last_race_date,last_race_finish,track_condition,breed,course,last_race_number
-1,King of Kentucky,L Machado,C L Brownfield III,118,6,1,Claiming,63000,Dirt,7.0,F,15,G,38,8,6,3,2026-03-20,4,FT,TB,M,1
-1,Track Ranger,T Gaffalione,D Jacobson,118,4,2,Claiming,63000,Dirt,7.0,F,4.5,G,13,3,1,1,2026-01-02,6,FT,TB,M,6
-1,Tagliatelle,G Saez,E N Foster,118,5,3,Claiming,63000,Dirt,7.0,F,6,G,21,4,3,5,2026-03-21,3,FT,TB,M,2
-1,Midnight Pranks,A Beschizza,R Diodoro,118,6,4,Claiming,63000,Dirt,7.0,F,10,G,27,4,2,5,2026-03-07,3,FT,TB,M,4
-1,Chado,C A Emigh,B A Vanden Berg,120,4,5,Claiming,63000,Dirt,7.0,F,8,C,14,3,2,3,2026-03-05,7,FT,TB,M,6
-1,Bebedouro,F Prat,R Diodoro,118,5,6,Claiming,63000,Dirt,7.0,F,3.5,G,21,3,1,3,2026-02-19,3,FT,TB,M,4
-1,Curahee,J L Ortiz,J Sharp,118,4,7,Claiming,63000,Dirt,7.0,F,1.2,G,14,3,4,1,2026-03-08,2,FT,TB,M,6
-2,Nash Potatoes,D Sheehy,T Newton,125,4,1,Maiden Claiming,48000,Dirt,7.0,F,8,G,11,0,0,0,2026-02-28,5,FT,TB,M,5
-2,Props,J Graham,J K Desormeaux,118,3,2,Maiden Claiming,48000,Dirt,7.0,F,6,G,9,0,2,1,2026-02-17,5,FT,TB,M,5
-2,El Oso,A Gomez,T Rivera,125,4,3,Maiden Claiming,48000,Dirt,7.0,F,30,G,7,0,1,0,2026-03-20,7,FT,TB,M,6
-2,King of Salsa,G Corrales,M Nihei,118,3,4,Maiden Claiming,48000,Dirt,7.0,F,15,C,3,0,0,1,2026-02-27,6,FT,TB,M,7
-2,Twenty Two Black,"B J Hernandez, Jr.",K G McPeek,118,3,5,Maiden Claiming,48000,Dirt,7.0,F,2,C,5,0,0,1,2026-03-06,6,FT,TB,M,4
-2,Market Watch,F Prat,M J Maker,125,4,6,Maiden Claiming,48000,Dirt,7.0,F,8,G,4,0,0,1,2026-02-28,12,FT,TB,M,5
-2,Field Study,A Concepcion,D Jacobson,118,3,7,Maiden Claiming,48000,Dirt,7.0,F,20,G,2,0,0,0,2026-03-05,10,FT,TB,M,4
-2,Lennie G,C J Lanerie,D L Romans,118,3,8,Maiden Claiming,48000,Dirt,7.0,F,12,C,4,0,0,0,2026-03-22,5,FT,TB,M,3
-2,The Reinbow Factor,G Saez,M R Thompson,125,4,9,Maiden Claiming,48000,Dirt,7.0,F,30,G,5,0,0,0,2026-03-12,8,FT,TB,M,9
-2,Mandy's Man Can,W A Rodriguez,P H Lobo,125,4,10,Maiden Claiming,48000,Dirt,7.0,F,10,G,4,0,1,0,2026-01-17,8,FT,TB,M,9
-2,Silver Dime,L Saez,C Anderson,118,3,11,Maiden Claiming,48000,Dirt,7.0,F,30,C,0,0,0,0,,,FT,TB,M,
-2,He's All Heart,J J Hernandez,M J Maker,125,4,12,Maiden Claiming,48000,Dirt,7.0,F,4.5,G,2,0,0,0,2026-03-12,6,FT,TB,M,9
-2,September Silver,A Concepcion,D Stewart,118,3,13,Maiden Claiming,48000,Dirt,7.0,F,15,G,7,0,0,1,2026-03-06,3,FT,TB,M,7
-2,Southern Soul,S Pauly,I Bahena,1135,3,14,Maiden Claiming,48000,Dirt,7.0,F,20,G,5,0,0,1,2026-03-19,4,FT,TB,M,1
-2,Frosted Mug,E J Zayas,I R Wilkes,118,3,15,Maiden Claiming,48000,Dirt,7.0,F,12,G,4,0,1,0,2026-03-13,2,FT,TB,M,7
-2,Beale Street Boy,L Machado,B Colebrook,118,3,16,Maiden Claiming,48000,Dirt,7.0,F,10,G,6,0,0,1,2026-03-14,6,FT,TB,M,4
-3,Touch of Fire,"I Ortiz, Jr.",B H Cox,118,3,1,Allowance,120000,Turf,8.5,F,1.8,C,2,1,1,0,2026-02-28,2,FM,TB,M,8
-3,Zeus's Echo,J R Velazquez,C Davis,118,3,2,Allowance,120000,Turf,8.5,F,20,C,7,1,2,0,2026-03-05,5,FM,TB,M,5
-3,Third Coast,S Marin,T F Proctor,120,3,3,Allowance,120000,Turf,8.5,F,15,G,1,1,0,0,2026-02-15,1,FM,TB,M,5
-3,Time for Money,E Morales,J Ennis,118,3,4,Allowance,120000,Turf,8.5,F,30,G,6,1,0,0,2026-02-21,10,FM,TB,M,9
-3,Tacticality,F Prat,C C Brown,118,3,5,Allowance,120000,Turf,8.5,F,4.5,C,4,1,0,1,2026-03-12,3,FM,TB,M,8
-3,Hayes Goal,D Sheehy,J Ennis,118,3,6,Allowance,120000,Turf,8.5,F,30,C,3,1,0,0,2026-02-27,1,FM,TB,M,7
-3,Mendels Mate,T Gaffalione,J Sharp,118,3,7,Allowance,120000,Turf,8.5,F,15,C,4,1,1,0,2026-03-05,2,FM,TB,M,9
-3,Mischief Ride,M Gutierrez,B C Barnett,120,3,8,Allowance,120000,Turf,8.5,F,12,C,4,1,1,0,2026-03-06,1,FM,TB,M,4
-3,J J Grey,"B J Hernandez, Jr.",K G McPeek,118,3,9,Allowance,120000,Turf,8.5,F,6,C,6,2,0,0,2026-03-21,6,FM,TB,M,8
-3,Khetam,J Graham,A McKeever,118,3,10,Allowance,120000,Turf,8.5,F,20,G,5,1,0,0,2026-03-05,4,FM,TB,M,9
-3,Chambersville,J L Ortiz,K G McPeek,118,3,11,Allowance,120000,Turf,8.5,F,10,C,5,1,1,1,2026-02-07,3,FM,TB,M,7
-3,Doctrine,L Saez,B H Cox,118,3,12,Allowance,120000,Turf,8.5,F,6,C,2,1,1,0,2026-02-12,2,FM,TB,M,7
-3,Knoty Knicks,C J Lanerie,J Engler,118,3,13,Allowance,120000,Turf,8.5,F,5,C,8,1,2,1,2026-03-07,3,FM,TB,M,7
-3,McCready,J R Leparoux,M Robertson,118,3,14,Allowance,120000,Turf,8.5,F,12,C,3,1,0,2,2026-02-28,3,FM,TB,M,8
-3,Gairloch,B Curtis,B P Walsh,118,3,15,Allowance,120000,Turf,8.5,F,6,G,2,1,0,0,2026-01-11,5,FM,TB,M,10
-3,Patrol Squad Six,J Alvarado,D L Romans,118,3,16,Allowance,120000,Turf,8.5,F,4,C,6,1,2,1,2026-03-12,2,FM,TB,M,8
-4,Hot Property,"I Ortiz, Jr.",B H Cox,125,4,1,Claiming,58000,Dirt,8.5,F,3.5,C,5,1,0,1,2026-03-12,5,FT,TB,M,8
-4,Profound,F Prat,W Walden,125,4,2,Claiming,58000,Dirt,8.5,F,3,C,6,1,0,0,2026-03-07,8,FT,TB,M,12
-4,Arthur Jr,J L Ortiz,K LaRose,125,4,3,Claiming,58000,Dirt,8.5,F,6,G,13,1,5,1,2026-03-19,6,FT,TB,M,1
-4,Maximum Promise,"B J Hernandez, Jr.",K G McPeek,125,4,4,Claiming,58000,Dirt,8.5,F,1.6,C,11,1,1,2,2026-03-19,5,FT,TB,M,6
-4,Sound Cause,T Gaffalione,S M Asmussen,125,4,5,Claiming,58000,Dirt,8.5,F,12,C,13,1,4,1,2026-02-26,8,FT,TB,M,9
-4,Aguila Negra,J N Hernandez,J C Perez,120,3,6,Claiming,58000,Dirt,8.5,F,8,G,7,1,0,1,2026-03-13,1,FT,TB,M,6
-4,Hard Spun to Run,A Concepcion,W B Calhoun,125,4,7,Claiming,58000,Dirt,8.5,F,15,G,8,1,3,1,2026-03-20,2,FT,TB,M,6
-4,Dewy's Denali,W Antongeorgi III,R E Gonzalez,118,3,8,Claiming,58000,Dirt,8.5,F,30,G,5,1,0,0,2026-03-27,5,FT,TB,M,6
-5,Goats On a Tree,J J Hernandez,M J Maker,118,5,1,Allowance,130000,Turf,8.5,F,12,M,19,6,1,7,2026-03-14,3,FM,TB,M,7
-5,Vina Arana,A Beschizza,J Sisterson,118,5,2,Allowance,130000,Turf,8.5,F,20,M,8,2,0,2,2025-12-21,7,FM,TB,M,6
-5,Somethinabouther,"I Ortiz, Jr.",B P Walsh,118,4,3,Allowance,130000,Turf,8.5,F,6,F,13,2,2,5,2025-11-28,10,FM,TB,M,10
-5,Deloraine,W A Rodriguez,E G Harty,118,4,4,Allowance,130000,Turf,8.5,F,30,F,9,2,0,4,2025-08-03,6,FM,TB,M,9
-5,Ceniza Pampa,J R Velazquez,H De Paz,118,5,5,Allowance,130000,Turf,8.5,F,20,M,20,4,3,4,2025-09-06,5,FM,TB,M,8
-5,Wind Flower,J Alvarado,W I Mott,120,4,6,Allowance,130000,Turf,8.5,F,8,F,6,2,0,0,2026-02-21,1,FM,TB,M,6
-5,In the Stars,L Saez,G R Arnold II,118,4,7,Allowance,130000,Turf,8.5,F,5,F,8,2,1,1,2025-11-28,7,FM,TB,M,10
-5,Bracelet,F Prat,B H Cox,118,4,8,Allowance,130000,Turf,8.5,F,4.5,F,8,2,1,1,2026-03-08,3,FM,TB,M,7
-5,Daisy Flyer,A Concepcion,G R Arnold II,118,4,9,Allowance,130000,Turf,8.5,F,6,F,7,2,0,1,2025-10-11,6,FM,TB,M,9
-5,Onemoredance,T Gaffalione,B P Walsh,118,4,10,Allowance,130000,Turf,8.5,F,6,F,13,5,1,1,2025-10-12,1,FM,TB,M,N/A
-5,Caviar Breakfast,"B J Hernandez, Jr.",K G McPeek,118,4,11,Allowance,130000,Turf,8.5,F,12,F,10,2,1,3,2025-12-27,5,FM,TB,M,9
-5,Lady Ilze,J L Ortiz,M E Casse,118,4,12,Allowance,130000,Turf,8.5,F,8,F,11,5,0,2,2025-08-30,7,FM,TB,M,11
-5,Strong Destiny,F De La Cruz,M P Sims,118,4,13,Allowance,130000,Turf,8.5,F,6,F,7,2,1,1,2026-03-06,1,FM,TB,M,3
-5,Exclusive Star,B Curtis,E Kenneally,120,4,14,Allowance,130000,Turf,8.5,F,8,F,9,2,2,2,2026-02-17,1,FM,TB,M,6
-5,Classy'n Connected,J R Leparoux,"T Drury, Jr.",118,5,15,Allowance,130000,Turf,8.5,F,15,M,20,3,4,2,2026-02-12,5,FM,TB,M,8
-5,Mahra's Love,G Corrales,M Nihei,118,4,16,Allowance,130000,Turf,8.5,F,20,F,9,3,1,2,2026-02-12,6,FM,TB,M,8
-6,Torre Eiffel,L Machado,J L Aranha,125,4,1,Maiden Special Weight,110000,Dirt,6.0,F,6,G,3,0,0,1,2025-12-18,7,FT,TB,M,5
-6,Great Moment,T Gaffalione,G D Foley,125,4,2,Maiden Special Weight,110000,Dirt,6.0,F,3.5,C,6,0,1,1,2026-02-21,2,FT,TB,M,7
-6,Puteketeke,F Prat,M J Maker,125,4,3,Maiden Special Weight,110000,Dirt,6.0,F,2,G,2,0,0,2,2026-03-13,3,FT,TB,M,9
-6,Mizzou,J R Velazquez,G Weaver,125,4,4,Maiden Special Weight,110000,Dirt,6.0,F,2.5,C,6,0,2,1,2026-03-01,2,FT,TB,M,4
-6,Perrylu,L Saez,V H Oliver,120,4,5,Maiden Special Weight,110000,Dirt,6.0,F,15,F,1,0,0,0,2025-06-28,7,FT,TB,M,6
-6,Culper Code,"B J Hernandez, Jr.",K G McPeek,118,3,6,Maiden Special Weight,110000,Dirt,6.0,F,8,C,0,0,0,0,,,FT,TB,M,
-6,Ring Curl,W Antongeorgi III,T S Wismer,118,3,7,Maiden Special Weight,110000,Dirt,6.0,F,30,C,4,0,0,0,2026-01-02,9,FT,TB,M,7
-6,Awesome Beat,J L Ortiz,D Jacobson,125,4,8,Maiden Special Weight,110000,Dirt,6.0,F,12,G,6,0,2,3,2025-12-13,3,FT,TB,M,2
-7,Sapphire Beach,J L Ortiz,G R Arnold II,118,3,1,Stakes,350000,Turf,5.5,F,10,F,5,2,1,0,2026-02-28,5,FM,TB,M,6
-7,Pure Eloquence,T Gaffalione,J Sisterson,118,3,2,Stakes,350000,Turf,5.5,F,20,F,4,2,0,0,2026-03-12,1,FM,TB,M,8
-7,Map of the Moon,A Concepcion,K Danner,120,3,3,Stakes,350000,Turf,5.5,F,15,F,4,3,0,0,2026-02-20,5,FM,TB,M,9
-7,Quiet Street,J Alvarado,W I Mott,120,3,4,Stakes,350000,Turf,5.5,F,10,F,3,2,0,1,2025-10-04,3,FM,TB,M,8
-7,Light Won Up,A Fresu,D F O'Neill,120,3,5,Stakes,350000,Turf,5.5,F,8,F,3,2,0,0,2026-02-07,1,FM,TB,M,9
-7,Debbie Doll,J Castellano,R Medina,118,3,6,Stakes,350000,Turf,5.5,F,30,F,4,2,1,0,2026-03-14,1,FM,TB,M,6
-7,Candy Talking,J Graham,M Robertson,118,3,7,Stakes,350000,Turf,5.5,F,20,F,5,2,2,0,2026-03-13,1,FM,TB,M,8
-7,Lennilu,L Saez,P L Biancone,120,3,8,Stakes,350000,Turf,5.5,F,4.5,F,7,5,0,1,2026-03-22,1,FM,TB,M,8
-7,Cy Fair,"I Ortiz, Jr.",G Weaver,123,3,9,Stakes,350000,Turf,5.5,F,1.8,F,4,3,1,0,2025-10-31,1,FM,TB,M,6
-7,Snow Face Princess,F Prat,S M Asmussen,120,3,10,Stakes,350000,Turf,5.5,F,6,F,4,2,1,0,2025-09-07,2,FM,TB,M,10
-7,Slay the Day,J R Velazquez,B A Lynch,118,3,11,Stakes,350000,Turf,5.5,F,15,F,4,2,1,0,2026-03-06,1,FM,TB,M,7
-7,Should've,J Rosario,W A Ward,118,3,12,Stakes,350000,Turf,5.5,F,20,F,3,1,0,1,2025-11-07,8,FM,TB,M,9
-7,Midnight Martini,J Castellano,M E Casse,118,3,13,Stakes,350000,Turf,5.5,F,20,F,2,1,1,0,2026-03-05,2,FM,TB,M,8
-7,Will Happen,J R Velazquez,R Baltas,118,3,14,Stakes,350000,Turf,5.5,F,30,F,4,1,1,1,2026-04-04,2,FM,TB,M,1
-8,Ginger Zip,J L Ortiz,D Jacobson,118,4,1,Allowance,120000,Dirt,6.0,F,20,F,6,1,3,0,2026-02-27,4,FT,TB,M,7
-8,Tetiaroa,"I Ortiz, Jr.",P A Bauer,118,4,2,Allowance,120000,Dirt,6.0,F,10,F,5,1,0,0,2025-11-22,10,FT,TB,M,5
-8,Keyana,J Rosario,D Leitch,118,4,3,Allowance,120000,Dirt,6.0,F,15,F,8,2,0,1,2026-03-11,10,FT,TB,M,9
-8,Cut to the Chase,J R Velazquez,W A Ward,118,4,4,Allowance,120000,Dirt,6.0,F,2.5,F,3,1,0,0,2025-12-03,6,FT,TB,M,8
-8,Chatter,T Gaffalione,"S A Joseph, Jr.",118,4,5,Allowance,120000,Dirt,6.0,F,3.5,F,8,1,3,1,2026-02-19,2,FT,TB,M,9
-8,She's a Gemma,L Saez,W I Mott,120,4,6,Allowance,120000,Dirt,6.0,F,1.8,F,4,1,1,0,2026-03-06,1,FT,TB,M,8
-8,Going Steady,F Prat,R Medina,118,4,7,Allowance,120000,Dirt,6.0,F,10,F,10,1,4,0,2025-12-28,8,FT,TB,M,8
-8,Autumn Rhythm,B Curtis,E Kenneally,118,4,8,Allowance,120000,Dirt,6.0,F,8,F,9,2,1,1,2026-02-28,3,FT,TB,M,5
-9,Rhetorical,"I Ortiz, Jr.",W Walden,123,5,1,Stakes,650000,Turf,8.0,F,3.5,G,7,5,0,1,2025-11-01,4,FM,TB,M,10
-9,One Stripe,J R Velazquez,H G Motion,123,5,2,Stakes,650000,Turf,8.0,F,8,H,13,7,2,0,2026-01-24,2,FM,TB,M,12
-9,Troubleshooting,T Gaffalione,G D Foley,123,4,3,Stakes,650000,Turf,8.0,F,30,C,11,4,3,0,2025-11-22,9,FM,TB,M,10
-9,Notable Speech,W Buick,C Appleby,123,5,4,Stakes,650000,Turf,8.0,F,1.8,H,14,7,1,1,2025-11-01,1,FM,TB,M,10
-9,Aomori City,R Mullen,C Appleby,123,4,5,Stakes,650000,Turf,8.0,F,20,C,9,2,1,3,2026-02-07,12,FM,TB,M,7
-9,Zulu Kingdom,F Prat,C C Brown,123,4,6,Stakes,650000,Turf,8.0,F,12,R,8,6,0,0,2025-08-01,4,FM,TB,M,7
-9,Tenacious Leader,L Saez,T A Pletcher,123,4,7,Stakes,650000,Turf,8.0,F,30,C,7,2,2,0,2026-02-28,5,FM,TB,M,8
-9,Bear River,J Graham,J K Desormeaux,123,5,8,Stakes,650000,Turf,8.0,F,30,R,27,7,0,5,2026-04-04,9,FM,TB,M,10
-9,Wolfie's Dynaghost,J L Ortiz,B A Lynch,123,8,9,Stakes,650000,Turf,8.0,F,8,G,33,14,3,5,2026-02-28,5,FM,TB,M,4
-9,Deterministic,K Carmouche,M Clement,123,5,10,Stakes,650000,Turf,8.0,F,5,H,13,7,3,1,2025-08-02,1,FM,TB,M,8
-9,Tiz Dashing,J Castellano,B Tagg,123,4,11,Stakes,650000,Turf,8.0,F,20,C,11,3,2,3,2026-02-28,1,FM,TB,M,4
-9,Brilliant Berti,"B J Hernandez, Jr.",C DeVaux,123,5,12,Stakes,650000,Turf,8.0,F,20,H,14,7,2,1,2026-02-14,4,FM,TB,M,10
-9,Pitkin,E J Zayas,I R Wilkes,123,4,13,Stakes,650000,Turf,8.0,F,30,C,6,2,2,0,2026-02-28,1,FM,TB,M,1
-10,Mr American Pie,A Fresu,D F O'Neill,118,3,1,Maiden Claiming,55000,Dirt,6.5,F,15,G,1,0,0,1,2026-03-13,3,FT,TB,M,2
-10,Chappelle,J Alvarado,D Beckman,125,4,2,Maiden Claiming,55000,Dirt,6.5,F,2.5,G,2,0,1,1,2026-01-24,3,FT,TB,M,5
-10,Free Advice,D Machado,T Humphries,125,4,3,Maiden Claiming,55000,Dirt,6.5,F,8,G,10,0,2,0,2026-03-12,2,FT,TB,M,9
-10,Hill Country,J Graham,J K Desormeaux,118,3,4,Maiden Claiming,55000,Dirt,6.5,F,20,C,0,0,0,0,,,FT,TB,M,
-10,Swaging,J L Ortiz,W M Catalano,125,5,5,Maiden Claiming,55000,Dirt,6.5,F,3.5,G,4,0,2,0,2026-02-21,5,FT,TB,M,7
-10,Don's Last Ride,T Gaffalione,J Sharp,118,3,6,Maiden Claiming,55000,Dirt,6.5,F,15,C,1,0,0,0,2026-02-21,8,FT,TB,M,5
-10,I'm Trouble,J R Velazquez,W A Ward,125,4,7,Maiden Claiming,55000,Dirt,6.5,F,4.5,G,3,0,1,0,2026-01-02,10,FT,TB,M,5
-10,Sparked,D Sheehy,A McKeever,118,3,8,Maiden Claiming,55000,Dirt,6.5,F,20,C,0,0,0,0,,,FT,TB,M,
-10,Barker,L Saez,C Davis,125,4,9,Maiden Claiming,55000,Dirt,6.5,F,6,G,6,0,0,1,2026-03-08,5,FT,TB,M,1
-10,Hewson,M Garcia,B G Hughes,118,3,10,Maiden Claiming,55000,Dirt,6.5,F,20,C,2,0,0,0,2026-02-18,8,FT,TB,M,8
-10,Chasing Gray,J A Torres,G T Forster,118,3,11,Maiden Claiming,55000,Dirt,6.5,F,30,G,4,0,0,0,2026-02-17,7,FT,TB,M,5
-10,Good Sal,W Antongeorgi III,T S Wismer,118,3,12,Maiden Claiming,55000,Dirt,6.5,F,30,G,0,0,0,0,,,FT,TB,M,
-10,Blazy,A Calleja,R Thompson,118,3,13,Maiden Claiming,55000,Dirt,6.5,F,30,C,0,0,0,0,,,FT,TB,M,
+1,Speed Skater,F Prat,B H Cox,118,3,1,Maiden Claiming,53000,Dirt,8.5,F,3,F,2,0,0,1,3/14/2026,3,FT,TB,M,4
+1,Queen McKinzie,J Alvarado,D Salvador,126,4,2,Maiden Claiming,53000,Dirt,8.5,F,6,F,13,0,4,3,2/19/2026,6,FT,TB,M,10
+1,Starbrite Starlite,L Machado,M P Sims,118,3,3,Maiden Claiming,53000,Dirt,8.5,F,23,F,6,0,0,0,3/22/2026,4,FT,TB,M,5
+1,Knockonwood,"I Ortiz, Jr.",J Sharp,118,3,4,Maiden Claiming,53000,Dirt,8.5,F,9,F,4,0,0,0,3/12/2026,7,FT,TB,M,7
+1,Lexico,T Gaffalione,J Sharp,118,3,5,Maiden Claiming,53000,Dirt,8.5,F,5,F,7,0,2,0,3/13/2026,4,FT,TB,M,1
+1,Nuts and Bolts,"B J Hernandez, Jr.",K G McPeek,118,3,6,Maiden Claiming,53000,Dirt,8.5,F,4,F,2,0,1,0,3/6/2026,2,FT,TB,M,7
+1,Galatina,L Saez,K Brion,126,4,7,Maiden Claiming,53000,Dirt,8.5,F,7,F,11,0,2,3,3/13/2026,5,FT,TB,M,6
+,,,,,,,,,,,,,,,,,,,,,,,
+1,West Coast Dream,J J Hernandez,M W McCarthy,126,4,9,Maiden Claiming,53000,Dirt,8.5,F,3,F,1,0,0,1,8/18/2025,3,FT,TB,M,4
+2,Frosted Mug,L Saez,I R Wilkes,118,3,1,Maiden Claiming,48000,Dirt,7,F,5,G,4,0,1,0,3/13/2026,2,FT,TB,M,7
+2,Southern Soul,S Pauly,I Bahena,1135,3,2,Maiden Claiming,48000,Dirt,7,F,16,G,5,0,0,1,3/19/2026,4,FT,TB,M,1
+,,,,,,,,,,,,,,,,,,,,,,,
+2,September Silver,A Concepcion,D Stewart,118,3,4,Maiden Claiming,48000,Dirt,7,F,7,G,7,0,0,1,3/6/2026,3,FT,TB,M,7
+2,In the Tank,B Curtis,C Torres,125,5,5,Maiden Claiming,48000,Dirt,7,F,19,G,1,0,0,0,10/19/2025,7,FT,TB,M,1
+2,Beale Street Boy,L Machado,B Colebrook,118,3,6,Maiden Claiming,48000,Dirt,7,F,3,G,6,0,0,1,3/14/2026,6,FT,TB,M,4
+2,Roundingthird,E Morales,J L Langemeier,118,3,7,Maiden Claiming,48000,Dirt,7,F,30,G,4,0,0,0,3/12/2026,9,FT,TB,M,9
+2,Dispersion,F De La Cruz,E N Foster,118,3,8,Maiden Claiming,48000,Dirt,7,F,8,G,3,0,0,0,3/13/2026,5,FT,TB,M,2
+2,Janey's Flyin,D Machado,T Humphries,118,3,9,Maiden Claiming,48000,Dirt,7,F,48,G,4,0,0,0,2/25/2026,9,FT,TB,M,9
+2,Cardinal Union,J A Torres,T L Van Berg,125,4,10,Maiden Claiming,48000,Dirt,7,F,6,G,5,0,0,0,2/28/2026,10,FT,TB,M,5
+,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,
+2,Next Time,T Gaffalione,D Jacobson,118,3,14,Maiden Claiming,48000,Dirt,7,F,2.5,C,2,0,0,0,2/5/2026,7,FT,TB,M,8
+,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,
+3,Hope Joe's Right,C Barbosa,K A Fernandez,118,5,1,Starter Allowance,50000,Dirt,9,F,11,G,13,3,2,0,3/19/2026,1,FT,TB,M,2
+3,Tres Soles,T Gaffalione,"W Stinson, Jr.",118,6,2,Starter Allowance,50000,Dirt,9,F,7,G,29,5,5,3,3/6/2026,3,FT,TB,M,1
+3,King of Hollywood,L Machado,J K Sweezey,118,7,3,Starter Allowance,50000,Dirt,9,F,9,G,52,14,5,9,3/8/2026,3,FT,TB,M,8
+3,Money Run,F Prat,P Miller,118,6,4,Starter Allowance,50000,Dirt,9,F,2.5,G,31,9,2,3,3/12/2026,4,FT,TB,M,7
+3,Non Fungible,S Pauly,M Dalton,1155,5,5,Starter Allowance,50000,Dirt,9,F,30,G,19,3,0,2,3/18/2026,1,FT,TB,M,3
+3,Fountain Run,D Sheehy,A M Meah,120,4,6,Starter Allowance,50000,Dirt,9,F,3,G,17,4,1,4,3/7/2026,7,FT,TB,M,10
+3,Eye Dee Kay,"I Ortiz, Jr.",K LaRose,118,7,7,Starter Allowance,50000,Dirt,9,F,0.6,G,47,12,8,10,2/6/2026,2,FT,TB,M,4
+3,Ice Minister,J N Hernandez,D Hancock,118,6,8,Starter Allowance,50000,Dirt,9,F,26,G,15,4,1,2,3/28/2026,3,FT,TB,M,5
+4,Cookie's Run,"B J Hernandez, Jr.",K G McPeek,118,3,1,Maiden Special Weight,110000,Dirt,6.5,F,10,F,1,0,0,0,3/1/2026,8,FT,TB,M,2
+4,Island Barbie,F Prat,C Murphy,125,4,2,Maiden Special Weight,110000,Dirt,6.5,F,8,F,1,0,0,0,5/17/2025,5,FT,TB,M,11
+4,Once Upon a Time,D L Parker,M Dalton,125,4,3,Maiden Special Weight,110000,Dirt,6.5,F,18,F,6,0,0,0,3/27/2026,6,FT,TB,M,5
+4,Shewontbudge,"I Ortiz, Jr.",B H Cox,125,4,4,Maiden Special Weight,110000,Dirt,6.5,F,1,F,3,0,1,1,5/24/2025,2,FT,TB,M,1
+4,Bella Darling,M Gutierrez,V H Oliver,125,4,5,Maiden Special Weight,110000,Dirt,6.5,F,6,F,0,0,0,0,,,FT,TB,M,
+4,Willowy,S E Bermudez,"J J Manning, Jr.",125,5,6,Maiden Special Weight,110000,Dirt,6.5,F,40,M,13,0,1,1,3/11/2026,7,FT,TB,M,10
+4,Mon Reve,L Saez,V H Oliver,118,3,7,Maiden Special Weight,110000,Dirt,6.5,F,8,F,0,0,0,0,,,FT,TB,M,
+4,Rockin Robin,T Gaffalione,M E Casse,118,3,8,Maiden Special Weight,110000,Dirt,6.5,F,0.5,F,6,0,2,3,3/5/2026,2,FT,TB,M,6
+4,Pinto,J Alvarado,N W Casse,118,3,9,Maiden Special Weight,110000,Dirt,6.5,F,2,F,0,0,0,0,,,FT,TB,M,
+5,Underappreciated,E Morales,J Ennis,120,3,1,Maiden Special Weight,110000,Turf,8.5,F,36,G,5,0,1,1,3/14/2026,2,FM,TB,M,3
+5,Tilson,L Machado,W Walden,120,3,2,Maiden Special Weight,110000,Turf,8.5,F,14,G,0,0,0,0,,,FM,TB,M,
+5,Comprehensive,M Gutierrez,B A Lynch,120,3,3,Maiden Special Weight,110000,Turf,8.5,F,1.2,C,4,0,2,1,3/8/2026,2,FM,TB,M,7
+5,Magical Factor,K Kimura,R Halden,120,3,4,Maiden Special Weight,110000,Turf,8.5,F,8,G,2,0,0,0,3/1/2026,5,FM,TB,M,8
+5,Bhatia,"I Ortiz, Jr.",C Davis,120,3,5,Maiden Special Weight,110000,Turf,8.5,F,14,C,4,0,0,1,3/11/2026,3,FM,TB,M,7
+5,Minotaur,J Rosario,D Gargan,120,3,6,Maiden Special Weight,110000,Turf,8.5,F,5,G,2,0,0,0,3/1/2026,7,FM,TB,M,8
+5,Ur Benja,D Machado,J L Aranha,120,3,7,Maiden Special Weight,110000,Turf,8.5,F,78,C,1,0,0,0,1/2/2026,6,FM,TB,M,6
+5,Still Sober,J A Torres,E Caramori,120,3,8,Maiden Special Weight,110000,Turf,8.5,F,44,C,7,0,0,1,3/14/2026,5 - DNS,FM,TB,M,4
+5,Quiet Mischief,V Cheminaud,R Mott,120,3,9,Maiden Special Weight,110000,Turf,8.5,F,30,C,2,0,0,0,3/11/2026,8,FM,TB,M,7
+5,Newman,B Curtis,E Kenneally,120,3,10,Maiden Special Weight,110000,Turf,8.5,F,10,C,2,0,0,0,3/7/2026,4,FM,TB,M,5
+5,Provider,J J Hernandez,P Eurton,120,3,11,Maiden Special Weight,110000,Turf,8.5,F,16,C,2,0,0,1,3/7/2026,6,FM,TB,M,5
+5,Wrathchild,T Gaffalione,B P Walsh,120,3,12,Maiden Special Weight,110000,Turf,8.5,F,5,C,1,0,0,0,2/27/2026,4,FM,TB,M,5
+6,Excite,J Alvarado,W I Mott,118,4,1,Allowance Optional Claiming,130000,Dirt,9,F,3.5,C,10,2,1,2,3/21/2026,4,FT,TB,M,7
+6,Authentic Strike,F Prat,R Brisset,118,4,2,Allowance Optional Claiming,130000,Dirt,9,F,1.6,C,4,2,0,0,2/28/2026,5,FT,TB,M,4
+6,Original Sin,T Gaffalione,B P Walsh,118,4,3,Allowance Optional Claiming,130000,Dirt,9,F,6,C,6,2,0,2,2/19/2026,6,FT,TB,M,7
+6,Curlin's Malibu,"I Ortiz, Jr.",J Sharp,118,7,4,Allowance Optional Claiming,130000,Dirt,9,F,11,G,42,6,7,8,12/28/2025,6,FT,TB,M,3
+6,Hard as Life,G Corrales,M Nihei,120,4,5,Allowance Optional Claiming,130000,Dirt,9,F,24,C,8,2,1,0,2/15/2026,1,FT,TB,M,4
+6,Septarian,J A Torres,R Mott,118,4,6,Allowance Optional Claiming,130000,Dirt,9,F,25,G,7,3,1,1,3/11/2026,9,FT,TB,M,6
+6,Conquest Warrior,L Saez,S M Asmussen,118,5,7,Allowance Optional Claiming,130000,Dirt,9,F,2,H,5,2,1,1,2/19/2026,2,FT,TB,M,7
+7,Cinister Cix,L Saez,S Sands,118,4,1,Allowance,120000,Turf,8,F,17,C,12,1,1,3,3/7/2026,3,FM,TB,M,8
+7,Love'm Or Liam,J Alvarado,W I Mott,118,4,2,Allowance,120000,Turf,8,F,4,C,8,1,2,3,3/13/2026,1,FM,TB,M,5
+7,Sicilian Defense,"I Ortiz, Jr.",C DeVaux,118,5,3,Allowance,120000,Turf,8,F,7,H,9,1,3,0,6/1/2025,9,FM,TB,M,6
+,,,,,,,,,,,,,,,,,,,,,,,
+7,Master of Light,A Beschizza,E Vaughan,118,4,5,Allowance,120000,Turf,8,F,31,G,,,,,,,FM,TB,M,
+7,Arkhipov,F Prat,C C Brown,120,4,6,Allowance,120000,Turf,8,F,2,G,,,,,,,FM,TB,M,
+7,Noble Confessor,T Gaffalione,T A Pletcher,118,4,7,Allowance,120000,Turf,8,F,1.8,C,11,1,4,1,2/28/2026,8,FM,TB,M,1
+7,Apophis,K Kimura,V H Oliver,118,5,8,Allowance,120000,Turf,8,F,50,G,6,1,0,2,2/12/2026,7,FM,TB,M,9
+7,Rocky Joy,L Machado,J L Aranha,118,6,9,Allowance,120000,Turf,8,F,9,H,18,1,8,3,1/1/2026,11,FM,TB,M,7
+8,Haywinii,L Machado,B Colebrook,120,3,1,Maiden Special Weight,110000,Dirt,7,F,16,F,1,0,1,0,3/11/2026,2,FT,TB,M,10
+8,Arcana,J Castellano,I R Wilkes,120,3,2,Maiden Special Weight,110000,Dirt,7,F,21,F,0,0,0,0,,,FT,TB,M,
+8,Right Timing,F Prat,C C Brown,120,3,3,Maiden Special Weight,110000,Dirt,7,F,1.6,F,1,0,1,0,3/7/2026,2,FT,TB,M,8
+8,Rose of San Antone,E Morales,J Ennis,120,3,4,Maiden Special Weight,110000,Dirt,7,F,24,F,0,0,0,0,,,FT,TB,M,
+8,She's Our Ten,L Saez,P Eurton,120,3,5,Maiden Special Weight,110000,Dirt,7,F,10,F,1,0,0,0,3/13/2026,4,FT,TB,M,5
+8,Lets Shance It,F De La Cruz,A M West,120,3,6,Maiden Special Weight,110000,Dirt,7,F,36,F,8,0,3,1,3/21/2026,4,FT,TB,M,13
+8,Divine Passion,"B J Hernandez, Jr.",K G McPeek,120,3,7,Maiden Special Weight,110000,Dirt,7,F,40,F,2,0,0,0,3/21/2026,8,FT,TB,M,1
+8,Epic Proud Mary,J Rosario,B A Lynch,120,3,8,Maiden Special Weight,110000,Dirt,7,F,9,F,0,0,0,0,,,FT,TB,M,
+8,Pharoah's Affair,I Moncada,K Vassilieva,120,3,9,Maiden Special Weight,110000,Dirt,7,F,49,F,1,0,0,0,3/15/2026,7,FT,TB,M,6
+8,La Rascasse,A Concepcion,W Walden,120,3,10,Maiden Special Weight,110000,Dirt,7,F,6,F,0,0,0,0,,,FT,TB,M,
+8,Belle,K Kimura,K Attard,120,3,11,Maiden Special Weight,110000,Dirt,7,F,12,F,0,0,0,0,,,FT,TB,M,
+8,Al Ghadeer,T Gaffalione,A McKeever,120,3,12,Maiden Special Weight,110000,Dirt,7,F,3.5,F,1,0,0,1,11/29/2025,3,FT,TB,M,3
+9,Expensive Queen,L Saez,B P Walsh,123,5,1,Stakes,650000,Turf,8.5,F,2.5,M,11,4,2,0,2/14/2026,1,FM,TB,M,8
+9,Fast Market,S Marin,J P Terranova II,123,4,2,Stakes,650000,Turf,8.5,F,36,F,11,2,3,1,11/23/2025,1,FM,TB,M,8
+9,Medoro,J J Hernandez,P Eurton,123,5,3,Stakes,650000,Turf,8.5,F,7,M,14,6,4,3,2/14/2026,2,FM,TB,M,8
+9,Pin Up Betty,J Rosario,M J Maker,123,5,4,Stakes,650000,Turf,8.5,F,11,M,20,4,6,1,11/27/2025,5,FM,TB,M,11
+9,Dynamic Pricing,"I Ortiz, Jr.",C C Brown,123,5,5,Stakes,650000,Turf,8.5,F,5,M,12,5,0,4,10/4/2025,7,FM,TB,M,8
+9,Deep Satin,"B J Hernandez, Jr.",C DeVaux,123,5,6,Stakes,650000,Turf,8.5,F,16,M,10,3,4,0,11/1/2025,5,FM,TB,M,3
+,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,
+9,Aussie Girl,B Curtis,W Walden,123,6,9,Stakes,650000,Turf,8.5,F,8,M,21,6,5,2,1/31/2026,1,FM,TB,M,9
+9,Segesta,F Prat,C C Brown,123,5,10,Stakes,650000,Turf,8.5,F,1.5,M,11,4,4,0,11/30/2025,1,FM,TB,M,7
+10,Corona de Oro,"B J Hernandez, Jr.",D Stewart,123,3,1,Stakes,400000,Dirt,8.5,F,3,C,4,1,1,1,3/7/2026,1,FT,TB,M,2
+10,Exhibition Only,R Silvera,R R Rodriguez,123,3,2,Stakes,400000,Dirt,8.5,F,39,C,6,1,1,0,2/28/2026,4,FT,TB,M,10
+,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,
+10,Mister T,M Murrill,C Galindo-Torres,123,3,5,Stakes,400000,Dirt,8.5,F,17,C,4,3,0,0,11/13/2025,1,FT,TB,M,11
+10,Ramblin,M Gutierrez,B C Barnett,123,3,6,Stakes,400000,Dirt,8.5,F,85,C,9,1,2,1,2/28/2026,5,FT,TB,M,8
+10,The Hell We Did,L Saez,T W Fincher,123,3,7,Stakes,400000,Dirt,8.5,F,5,C,3,2,1,0,3/15/2026,1,FT,TB,M,2
+10,Trendsetter,K Kimura,B Colebrook,123,3,8,Stakes,400000,Dirt,8.5,F,32,G,7,2,1,1,3/21/2026,3,FT,TB,M,8
+10,Ezum,F Prat,B H Cox,123,3,9,Stakes,400000,Dirt,8.5,F,2.5,C,2,1,0,0,3/14/2026,1,FT,TB,M,4
+10,Confessional,"I Ortiz, Jr.",B H Cox,123,3,10,Stakes,400000,Dirt,8.5,F,1.8,C,4,1,1,1,3/14/2026,3,FT,TB,M,9
+10,I Did I Did,J J Hernandez,M J Maker,123,3,11,Stakes,400000,Dirt,8.5,F,16,C,7,1,2,0,3/12/2026,2,FT,TB,M,2
+11,Starmetal,G Corrales,M Nihei,120,3,1,Maiden Special Weight,110000,Turf,8.5,F,40,G,5,0,0,1,3/6/2026,4,FM,TB,M,4
+11,Penn Star,E Morales,T S Wismer,120,3,2,Maiden Special Weight,110000,Turf,8.5,F,31,C,4,0,0,0,2/14/2026,12,FM,TB,M,5
+,,,,,,,,,,,,,,,,,,,,,,,
+11,Heeere's Johnny,J Castellano,R Handal,120,3,4,Maiden Special Weight,110000,Turf,8.5,F,2.5,C,5,0,3,0,10/31/2025,5,FM,TB,M,10
+11,High Honors,B Curtis,A M Meah,120,3,5,Maiden Special Weight,110000,Turf,8.5,F,33,G,6,0,0,3,2/19/2026,7,FM,TB,M,10
+11,West End Kid,T Gaffalione,W Walden,120,3,6,Maiden Special Weight,110000,Turf,8.5,F,1.5,C,1,0,0,0,2/8/2026,4,FM,TB,M,10
+11,Soulman,L Machado,C A Hartman,120,3,7,Maiden Special Weight,110000,Turf,8.5,F,33,G,6,0,2,1,2/16/2026,2,FM,TB,M,3
+11,Terre Haute,A Beschizza,J Ennis,120,3,8,Maiden Special Weight,110000,Turf,8.5,F,14,G,1,0,0,1,3/21/2026,3,FM,TB,M,5
+11,Sharons Angels,L Saez,R Baltas,120,3,9,Maiden Special Weight,110000,Turf,8.5,F,16,G,4,0,1,1,3/22/2026,3,FM,TB,M,4
+,,,,,,,,,,,,,,,,,,,,,,,
+11,Coordinator,F Prat,C C Brown,120,3,11,Maiden Special Weight,110000,Turf,8.5,F,2.5,C,0,0,0,0,,,FM,TB,M,
+,,,,,,,,,,,,,,,,,,,,,,,
