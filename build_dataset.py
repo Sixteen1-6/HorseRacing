@@ -65,10 +65,21 @@ ORIGINAL_COLS = [
 
 # Extended columns from scraper v3
 EXTENDED_SCRAPER_COLS = [
-    "margin_finish", "pos_1st_call", "pos_2nd_call", "pos_stretch",
-    "margin_1st_call", "margin_2nd_call", "margin_stretch",
+    "start_pos",
+    "pos_1st_call", "margin_1st_call", "pos_2nd_call", "margin_2nd_call",
+    "pos_3rd_call", "margin_3rd_call", "pos_stretch", "margin_stretch",
+    "pos_finish", "margin_finish", "temperature",
     "frac_1", "frac_2", "frac_3", "frac_4", "final_time_secs",
     "speed_figure_equibase", "claimed_price",
+]
+
+# Running style, pace, trip, and class features (computed by build_dataset)
+PACE_TRIP_COLS = [
+    "running_style", "pace_pressure", "pace_pressure_pct", "style_advantage",
+    "avg_early_pos", "avg_late_gain", "avg_margin_finish", "best_finish_margin",
+    "had_trouble", "wide_trip", "poor_start", "strong_close", "faded",
+    "avg_trouble_rate", "avg_wide_rate",
+    "class_change", "distance_change",
 ]
 
 # Speed figure columns computed by our pipeline
@@ -160,6 +171,322 @@ def filter_dates(df, start_date, end_date):
     after = len(df)
     if before != after:
         print(f"  Date filter: {before:,} -> {after:,} rows")
+    return df
+
+
+def compute_career_stats(df):
+    """Compute num_past_starts/wins/seconds/thirds from the dataset itself.
+
+    For each row, counts how many races the same horse completed BEFORE
+    this race date (strictly less-than — no leakage).  Only fills values
+    where the column is missing or empty; preserves Equibase-provided
+    values from the HTML scraper when present.
+
+    Requires _race_date_parsed to be set (call parse_race_dates first).
+    """
+    if "_race_date_parsed" not in df.columns:
+        print("  WARNING: _race_date_parsed missing, skipping career stats")
+        return df
+
+    stat_cols = ["num_past_starts", "num_past_wins", "num_past_seconds", "num_past_thirds"]
+    for col in stat_cols:
+        if col not in df.columns:
+            df[col] = np.nan
+        else:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    # Check how many rows already have values (from HTML scraper)
+    already_filled = df["num_past_starts"].notna().sum()
+    need_fill = df["num_past_starts"].isna().sum()
+    print(f"  Career stats: {already_filled:,} already filled, {need_fill:,} to compute")
+
+    if need_fill == 0:
+        return df
+
+    # We need finish positions and dates
+    df["_finish_num"] = pd.to_numeric(df["finish"], errors="coerce")
+
+    # Sort by date so we can iterate chronologically
+    df = df.sort_values("_race_date_parsed", na_position="last").reset_index(drop=True)
+
+    # Build per-horse running tallies
+    # Track: {horse_name: [starts, wins, seconds, thirds]}
+    horse_counts = {}
+    computed = 0
+
+    starts_arr = df["num_past_starts"].values.copy()
+    wins_arr = df["num_past_wins"].values.copy()
+    seconds_arr = df["num_past_seconds"].values.copy()
+    thirds_arr = df["num_past_thirds"].values.copy()
+    names = df["horse_name"].values
+    finishes = df["_finish_num"].values
+    dates = df["_race_date_parsed"].values
+
+    for i in range(len(df)):
+        name = names[i]
+        if pd.isna(name) or str(name).strip() == "":
+            continue
+
+        name = str(name).strip()
+
+        # Initialize horse if first time seeing them
+        if name not in horse_counts:
+            horse_counts[name] = [0, 0, 0, 0]  # starts, wins, 2nds, 3rds
+
+        # Fill in career stats if missing
+        if pd.isna(starts_arr[i]):
+            s, w, sec, thi = horse_counts[name]
+            starts_arr[i] = s
+            wins_arr[i] = w
+            seconds_arr[i] = sec
+            thirds_arr[i] = thi
+            computed += 1
+
+        # Update running tally AFTER recording (this race counts for future rows)
+        fin = finishes[i]
+        if not pd.isna(fin) and not pd.isna(dates[i]):
+            horse_counts[name][0] += 1
+            if fin == 1:
+                horse_counts[name][1] += 1
+            elif fin == 2:
+                horse_counts[name][2] += 1
+            elif fin == 3:
+                horse_counts[name][3] += 1
+
+    df["num_past_starts"] = starts_arr.astype(float)
+    df["num_past_wins"] = wins_arr.astype(float)
+    df["num_past_seconds"] = seconds_arr.astype(float)
+    df["num_past_thirds"] = thirds_arr.astype(float)
+    df.drop(columns=["_finish_num"], inplace=True, errors="ignore")
+
+    print(f"  Computed career stats for {computed:,} rows "
+          f"({len(horse_counts):,} unique horses)")
+
+    return df
+
+
+# ── Trip comment keyword lists ──────────────────────────────────
+TROUBLE_KW = [
+    "checked", "chked", "chkd", "steadied", "bumped", "bmpd", "blocked",
+    "boxed", "impeded", "clipped", "stumbled", "fell", "lugged",
+]
+WIDE_KW = ["wide", "4-w", "5-w", "6-w", "7-w", "8-w", "4wide", "5wide", "6wide"]
+POOR_START_KW = [
+    "slow start", "slowstart", "dwelt", "broke slow", "brokeslow",
+    "broke out", "brokeout", "broke in", "brokein", "stumbled start",
+]
+STRONG_CLOSE_KW = [
+    "drewoff", "drew off", "rallied", "rally", "surged", "strongrally",
+    "closed fast", "closedfast", "flying late", "flyinglate", "strong finish",
+    "gaining", "upfinaljump",
+]
+FADED_KW = [
+    "tired", "faded", "weakened", "gave way", "gaveway", "stopped",
+    "eased", "pulled up", "hung", "flattenedstretch", "dulleffort",
+    "neverfired", "showedlittle",
+]
+
+
+def _comment_has(comment, keywords):
+    """Check if lowercased comment contains any keyword."""
+    return 1 if any(kw in comment for kw in keywords) else 0
+
+
+def compute_position_and_trip_features(df):
+    """Compute per-horse historical running style, position averages,
+    trip comment flags, and class/distance changes.
+
+    Single chronological pass — all features are leak-free (use only
+    data from races strictly before the current one).
+
+    Requires: _race_date_parsed, num_horses_in_race, furlongs.
+    """
+    if "_race_date_parsed" not in df.columns:
+        print("  WARNING: _race_date_parsed missing, skipping position features")
+        return df
+
+    # Ensure numeric columns
+    for col in ["pos_1st_call", "pos_finish", "margin_finish", "finish", "purse"]:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    if "num_horses_in_race" not in df.columns:
+        df["num_horses_in_race"] = 8
+
+    df = df.sort_values("_race_date_parsed", na_position="last").reset_index(drop=True)
+    n = len(df)
+
+    # Pre-allocate output arrays
+    running_styles = np.full(n, "U", dtype=object)
+    avg_early_pos = np.full(n, np.nan)
+    avg_late_gain = np.full(n, np.nan)
+    avg_margin_fin = np.full(n, np.nan)
+    best_margin_fin = np.full(n, np.nan)
+    had_trouble = np.zeros(n, dtype=np.int8)
+    wide_trip = np.zeros(n, dtype=np.int8)
+    poor_start = np.zeros(n, dtype=np.int8)
+    strong_close = np.zeros(n, dtype=np.int8)
+    faded = np.zeros(n, dtype=np.int8)
+    avg_trouble_rate = np.full(n, np.nan)
+    avg_wide_rate = np.full(n, np.nan)
+    class_change = np.full(n, np.nan)
+    distance_change = np.full(n, np.nan)
+
+    # Extract arrays for fast access
+    names = df["horse_name"].values
+    pos1 = df["pos_1st_call"].values if "pos_1st_call" in df.columns else np.full(n, np.nan)
+    finishes = df["finish"].values if "finish" in df.columns else np.full(n, np.nan)
+    mfin = df["margin_finish"].values if "margin_finish" in df.columns else np.full(n, np.nan)
+    field_sizes = df["num_horses_in_race"].values
+    purses = df["purse"].values if "purse" in df.columns else np.full(n, np.nan)
+    fur = df["furlongs"].values if "furlongs" in df.columns else np.full(n, np.nan)
+    comments = df["comment"].values if "comment" in df.columns else np.full(n, "", dtype=object)
+    dates = df["_race_date_parsed"].values
+
+    # Per-horse accumulators
+    # Each horse: {rel_pos: [], gains: [], margins: [],
+    #              trouble: int, wide: int, commented: int,
+    #              last_purse: float, last_fur: float}
+    horse = {}
+    computed = 0
+
+    for i in range(n):
+        name = names[i]
+        if pd.isna(name) or str(name).strip() == "":
+            continue
+        name = str(name).strip()
+
+        if name not in horse:
+            horse[name] = {
+                "rel_pos": [], "gains": [], "margins": [],
+                "trouble": 0, "wide": 0, "commented": 0,
+                "last_purse": np.nan, "last_fur": np.nan,
+            }
+
+        h = horse[name]
+
+        # === WRITE features from PRIOR races ===
+        if h["rel_pos"]:
+            avg_rel = np.mean(h["rel_pos"])
+            avg_early_pos[i] = round(avg_rel, 4)
+            if avg_rel <= 0.25:
+                running_styles[i] = "E"
+            elif avg_rel <= 0.50:
+                running_styles[i] = "P"
+            elif avg_rel <= 0.75:
+                running_styles[i] = "S"
+            else:
+                running_styles[i] = "C"
+
+        if h["gains"]:
+            avg_late_gain[i] = round(np.mean(h["gains"]), 2)
+
+        if h["margins"]:
+            avg_margin_fin[i] = round(np.mean(h["margins"]), 2)
+            best_margin_fin[i] = round(min(h["margins"]), 2)
+
+        if h["commented"] > 0:
+            avg_trouble_rate[i] = round(h["trouble"] / h["commented"], 4)
+            avg_wide_rate[i] = round(h["wide"] / h["commented"], 4)
+
+        # Class/distance change vs last race
+        if not np.isnan(h["last_purse"]) and not np.isnan(purses[i]):
+            class_change[i] = purses[i] - h["last_purse"]
+        if not np.isnan(h["last_fur"]) and not np.isnan(fur[i]):
+            distance_change[i] = round(fur[i] - h["last_fur"], 2)
+
+        # === PARSE current race comment (flags, not leak) ===
+        c = str(comments[i]).lower() if not pd.isna(comments[i]) else ""
+        had_trouble[i] = _comment_has(c, TROUBLE_KW)
+        wide_trip[i] = _comment_has(c, WIDE_KW)
+        poor_start[i] = _comment_has(c, POOR_START_KW)
+        strong_close[i] = _comment_has(c, STRONG_CLOSE_KW)
+        faded[i] = _comment_has(c, FADED_KW)
+
+        # === UPDATE accumulators for future rows ===
+        if not pd.isna(dates[i]):
+            p1 = pos1[i]
+            fs = field_sizes[i]
+            fin = finishes[i]
+
+            if not np.isnan(p1) and not np.isnan(fs) and fs > 0:
+                h["rel_pos"].append(p1 / fs)
+
+            if not np.isnan(p1) and not np.isnan(fin):
+                h["gains"].append(p1 - fin)
+
+            if not np.isnan(mfin[i]):
+                h["margins"].append(mfin[i])
+
+            if c:
+                h["commented"] += 1
+                if had_trouble[i]:
+                    h["trouble"] += 1
+                if wide_trip[i]:
+                    h["wide"] += 1
+
+            if not np.isnan(purses[i]):
+                h["last_purse"] = purses[i]
+            if not np.isnan(fur[i]):
+                h["last_fur"] = fur[i]
+
+        computed += 1
+
+    # Assign to DataFrame
+    df["running_style"] = running_styles
+    df["avg_early_pos"] = avg_early_pos
+    df["avg_late_gain"] = avg_late_gain
+    df["avg_margin_finish"] = avg_margin_fin
+    df["best_finish_margin"] = best_margin_fin
+    df["had_trouble"] = had_trouble
+    df["wide_trip"] = wide_trip
+    df["poor_start"] = poor_start
+    df["strong_close"] = strong_close
+    df["faded"] = faded
+    df["avg_trouble_rate"] = avg_trouble_rate
+    df["avg_wide_rate"] = avg_wide_rate
+    df["class_change"] = class_change
+    df["distance_change"] = distance_change
+
+    style_counts = pd.Series(running_styles).value_counts()
+    print(f"  Processed {computed:,} rows, {len(horse):,} unique horses")
+    print(f"  Running styles: {dict(style_counts)}")
+
+    return df
+
+
+def compute_pace_scenario(df):
+    """Compute race-level pace features from running style labels.
+
+    Uses running_style (from prior races) to estimate pace pressure
+    for the current race. Leak-free: styles are based on historical data.
+    """
+    if "running_style" not in df.columns:
+        print("  WARNING: running_style missing, skipping pace scenario")
+        return df
+
+    race_keys = ["track_code", "_race_date_parsed", "race_number"]
+    if not all(c in df.columns for c in race_keys):
+        return df
+
+    # Count early-speed types (E and P) per race
+    df["_is_speed"] = df["running_style"].isin(["E", "P"]).astype(int)
+    df["pace_pressure"] = df.groupby(race_keys, observed=False)["_is_speed"].transform("sum")
+    df["pace_pressure_pct"] = (
+        df["pace_pressure"] / df["num_horses_in_race"].clip(lower=1)
+    ).round(3)
+
+    # Style advantage: closers benefit from hot pace, speed from cold pace
+    style_map = {"E": -1, "P": -1, "S": 1, "C": 1, "U": 0}
+    df["style_advantage"] = (
+        df["running_style"].map(style_map).fillna(0) * df["pace_pressure_pct"]
+    ).round(3)
+
+    df.drop(columns=["_is_speed"], inplace=True, errors="ignore")
+
+    avg_pressure = df["pace_pressure"].mean()
+    print(f"  Avg pace pressure: {avg_pressure:.1f} speed types/race")
+
     return df
 
 
@@ -396,14 +723,35 @@ def main():
         matched = 0
         print("  No speed figures computed (no qualifying entries)")
 
-    # --- Step 6: Compute bonus features ---
+    # --- Step 6: Compute career stats from dataset (fills missing values) ---
+    print("Computing career stats (num_past_starts/wins/seconds/thirds)...")
+    df = compute_career_stats(df)
+
+    # --- Step 7: Compute bonus features ---
     print("Computing bonus derived features (furlongs, win_rate, class_level)...")
     df = compute_bonus_features(df)
 
-    # --- Step 7: Order columns ---
-    # Build ordered column list: original -> extended scraper -> speed figs -> bonus -> anything else
+    # --- Step 8: Compute field sizes ---
+    print("Computing field sizes...")
+    race_keys = ["track_code", "_race_date_parsed", "race_number"]
+    if all(c in df.columns for c in race_keys):
+        df["num_horses_in_race"] = df.groupby(race_keys, observed=False)["horse_name"].transform("size")
+    else:
+        df["num_horses_in_race"] = 8
+    print(f"  Avg field size: {df['num_horses_in_race'].mean():.1f}")
+
+    # --- Step 9: Compute running style, position, trip & class features ---
+    print("Computing running style, position, trip & class features...")
+    df = compute_position_and_trip_features(df)
+
+    # --- Step 10: Compute pace scenario ---
+    print("Computing pace scenario features...")
+    df = compute_pace_scenario(df)
+
+    # --- Step 11: Order columns ---
+    # Build ordered column list: original -> extended scraper -> speed figs -> bonus -> pace/trip -> anything else
     ordered = []
-    for col_list in [ORIGINAL_COLS, EXTENDED_SCRAPER_COLS, SPEED_FIG_COLS, BONUS_COLS]:
+    for col_list in [ORIGINAL_COLS, EXTENDED_SCRAPER_COLS, SPEED_FIG_COLS, BONUS_COLS, PACE_TRIP_COLS]:
         for c in col_list:
             if c in df.columns and c not in ordered:
                 ordered.append(c)
@@ -414,7 +762,7 @@ def main():
 
     df = df[[c for c in ordered if c in df.columns]]
 
-    # --- Step 8: Write output ---
+    # --- Step 12: Write output ---
     print(f"\nWriting {args.output}...")
     df.to_csv(args.output, index=False)
 
