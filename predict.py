@@ -240,6 +240,12 @@ def engineer_features(df, jt_lookup=None):
         'speed_figure_normalized', 'win_time_seconds',
         'raw_speed_rating', 'track_variant', 'speed_figure',
         'frac_1', 'frac_2', 'frac_3', 'frac_4',
+        # Current-race data not available at prediction time
+        'final_time_secs', 'speed_figure_equibase', 'claimed_price',
+        'start_pos', 'pos_1st_call', 'margin_1st_call',
+        'pos_2nd_call', 'margin_2nd_call', 'pos_3rd_call', 'margin_3rd_call',
+        'pos_stretch', 'margin_stretch', 'pos_finish', 'margin_finish',
+        'had_trouble', 'wide_trip', 'poor_start', 'strong_close', 'faded',
     ]
     df.drop(columns=[c for c in drop_cols if c in df.columns], inplace=True, errors='ignore')
 
