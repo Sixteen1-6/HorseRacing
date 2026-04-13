@@ -307,7 +307,7 @@ class ChartPDFParser:
         entries = []
 
         # Split text into race blocks by the 'TRACK-Date-Race N' header
-        race_blocks = re.split(r"(?=[A-Z]+-[A-Z][a-z]+\d+,\d{4}-Race\s*\d+)", text)
+        race_blocks = re.split(r"(?=[A-Z]+\s*-\s*[A-Z][a-z]+\d+,\s*\d{4}\s*-\s*Race\s*\d+)", text)
         if len(race_blocks) <= 1:
             race_blocks = re.split(r"(?=(?:RACE|Race)\s*\d+)", text)
 
@@ -333,9 +333,11 @@ class ChartPDFParser:
             cond_m = re.search(r"Track:([A-Za-z]+(?:\([^)]*\))?)", block)
             track_condition = self._parse_condition_code(cond_m.group(1) if cond_m else "")
 
-            # Weather: 'Weather:Showery,67°'
+            # Weather: 'Weather:Showery,67°' or 'Weather:Cloudy,48°'
             weather_m = re.search(r"Weather:([A-Za-z]+)", block)
             weather = weather_m.group(1).strip() if weather_m else ""
+            temp_m = re.search(r"Weather:[A-Za-z,\s]*?(\d{1,3})\s*°", block)
+            temperature = int(temp_m.group(1)) if temp_m else ""
 
             # Post time: 'Offat:1:05'
             off_m = re.search(r"Offat:([\d:]+)", block)
@@ -416,6 +418,7 @@ class ChartPDFParser:
                 "frac_3": parse_time(frac_times_raw[2]) if len(frac_times_raw) > 2 else "",
                 "frac_4": parse_time(frac_times_raw[3]) if len(frac_times_raw) > 3 else "",
                 "final_time_secs": win_time,
+                "temperature": temperature,
             }
 
             race_entries = self._parse_results_from_text(block, race_info)
@@ -480,11 +483,15 @@ class ChartPDFParser:
                 entry["age"] = get("age")
                 entry["sex"] = get("sex")
                 entry["margin_finish"] = self._parse_margin(get("margin"))
+                entry["start_pos"] = self._extract_pos(get("pos_start"))
                 entry["pos_1st_call"] = self._extract_pos(get("pos_1st"))
                 entry["pos_2nd_call"] = self._extract_pos(get("pos_2nd"))
+                entry["pos_3rd_call"] = self._extract_pos(get("pos_3rd"))
                 entry["pos_stretch"] = self._extract_pos(get("pos_str"))
+                entry["pos_finish"] = self._extract_pos(get("finish"))
                 entry["margin_1st_call"] = self._extract_margin(get("pos_1st"))
                 entry["margin_2nd_call"] = self._extract_margin(get("pos_2nd"))
+                entry["margin_3rd_call"] = self._extract_margin(get("pos_3rd"))
                 entry["margin_stretch"] = self._extract_margin(get("pos_str"))
 
                 # Fill missing columns
@@ -498,6 +505,204 @@ class ChartPDFParser:
                 break  # found the right table
 
         return entries
+
+    def _parse_pos_token(self, token: str,
+                         field_size: Optional[int] = None) -> Tuple[object, object]:
+        """Parse a position+margin token like '21/2', '3Head', '1Nose', '5'.
+
+        Returns (position_int, margin_float).  Both "" on failure.
+
+        Equibase concatenates position + margin without a delimiter.
+        First digit is the running position (1-9); everything after is the
+        margin.  Margin can be a word (Head/Neck/Nose), a whole number of
+        lengths, a fraction (1/2, 3/4), or whole+fraction (11/2 = 1.5).
+
+        When *field_size* is given, a two-digit position that exceeds it is
+        rejected in favour of the single-digit interpretation.
+
+        Examples: '3Head' → (3, 0.1), '21/2' → (2, 0.5),
+                  '111/2' → (1, 1.5), '22' → (2, 2.0), '5' → (5, 0.0).
+        """
+        if not token:
+            return ("", "")
+        token = str(token).strip()
+
+        # Single digit: position only, no margin
+        if len(token) == 1 and token.isdigit():
+            return (int(token), 0.0)
+
+        # Multi-digit all-numeric: e.g. '22' → pos 2, margin 2
+        if token.isdigit() and len(token) >= 2:
+            pos_1d = int(token[0])
+            margin_1d = float(token[1:])
+
+            if len(token) >= 3 and token[1] == "0":
+                # Leading zero in margin → two-digit position
+                # '101' → pos 10, margin 1 (not pos 1, margin 01)
+                pos_2d = int(token[:2])
+                margin_2d = float(token[2:]) if len(token) > 2 else 0.0
+                if field_size and pos_2d > field_size:
+                    return (pos_1d, margin_1d)
+                return (pos_2d, margin_2d)
+
+            if len(token) >= 2:
+                pos_2d = int(token[:2])
+                margin_2d = float(token[2:]) if len(token) > 2 else 0.0
+                # Two-digit pos exceeds field → single-digit
+                if field_size and pos_2d > field_size:
+                    return (pos_1d, margin_1d)
+
+            return (pos_1d, margin_1d)
+
+        # Letter-based margins (Head, Neck, Nose, Hd, Nk)
+        # Greedy \d{1,2} correctly grabs '11' from '11Head' since 'H' stops the match.
+        letter_m = re.match(r"^(\d{1,2})([A-Za-z].*)$", token)
+        if letter_m:
+            pos = int(letter_m.group(1))
+            if field_size and pos > field_size and len(letter_m.group(1)) == 2:
+                pos = int(letter_m.group(1)[0])
+            margin = self._parse_margin(letter_m.group(2))
+            return (pos, margin if margin != "" else 0.0)
+
+        # Fraction-based margins: single-digit numerator fraction N/D (N < D).
+        frac_m = re.search(r"(\d)/(\d+)", token)
+        if frac_m:
+            num, den = int(frac_m.group(1)), int(frac_m.group(2))
+            if den > 0 and num < den:
+                frac_val = num / den
+                prefix = token[:frac_m.start()]
+                if not prefix or not prefix.isdigit():
+                    return ("", "")
+
+                # Two candidate splits when prefix has 2+ digits:
+                #   single-digit: pos = prefix[0], margin = prefix[1:] + frac
+                #   two-digit:    pos = prefix[:2], margin = prefix[2:] + frac
+                pos_1d = int(prefix[0])
+                mw_1d = prefix[1:]
+                margin_1d = (int(mw_1d) if mw_1d else 0) + frac_val
+
+                if len(prefix) >= 2:
+                    pos_2d = int(prefix[:2])
+                    mw_2d = prefix[2:]
+                    margin_2d = (int(mw_2d) if mw_2d else 0) + frac_val
+
+                    # Two-digit pos exceeds field → must be single-digit
+                    if field_size and pos_2d > field_size:
+                        return (pos_1d, margin_1d)
+
+                    # Leading-zero in margin-whole → two-digit position
+                    # (nobody writes "0 and 1/2 lengths")
+                    if prefix[1] == "0":
+                        return (pos_2d, margin_2d)
+
+                    # Both valid → default single-digit (duplicate pass
+                    # may override later)
+                    return (pos_1d, margin_1d)
+
+                return (pos_1d, margin_1d)
+
+        # Fallback
+        m = re.match(r"^(\d)(.*)", token)
+        if m:
+            pos = int(m.group(1))
+            margin_str = m.group(2).strip()
+            if margin_str:
+                margin = self._parse_margin(margin_str)
+                return (pos, margin if margin != "" else 0.0)
+            return (pos, 0.0)
+
+        return ("", "")
+
+    def _validate_race_positions(self, entries: List[Dict], field_size: int):
+        """Fix duplicate positions at the same call by trying two-digit reparse.
+
+        After initial parsing, two horses may share a position at a call
+        because one token was ambiguous (e.g. '121/2' parsed as pos=1
+        when it should be pos=12).  For each duplicate, try the two-digit
+        interpretation; accept it if it's ≤ field_size and resolves the
+        conflict.
+        """
+        call_keys = [
+            ("pos_1st_call", "margin_1st_call", "_raw_1st"),
+            ("pos_2nd_call", "margin_2nd_call", "_raw_2nd"),
+            ("pos_3rd_call", "margin_3rd_call", "_raw_3rd"),
+            ("pos_stretch", "margin_stretch", "_raw_str"),
+            ("pos_finish", "margin_finish", "_raw_fin"),
+        ]
+        for pos_key, margin_key, raw_key in call_keys:
+            # Loop until no more duplicates can be resolved
+            for _ in range(field_size):
+                pos_map: Dict[int, List[int]] = {}
+                for i, e in enumerate(entries):
+                    p = e.get(pos_key)
+                    if isinstance(p, int):
+                        pos_map.setdefault(p, []).append(i)
+
+                fixed_any = False
+                for pos_val, idxs in pos_map.items():
+                    if len(idxs) <= 1:
+                        continue
+                    # Sort: try reparsing the most suspicious entry first
+                    # (start_pos farthest from current parsed position)
+                    ranked = sorted(
+                        idxs,
+                        key=lambda i: abs(
+                            (entries[i].get("start_pos") or 0) - pos_val
+                        ) if isinstance(entries[i].get("start_pos"), int)
+                        else 0,
+                        reverse=True,
+                    )
+                    for i in ranked:
+                        raw = entries[i].get(raw_key, "")
+                        if not raw:
+                            continue
+                        alt = self._try_two_digit_parse(raw, field_size)
+                        if alt and alt[0] != pos_val:
+                            entries[i][pos_key] = alt[0]
+                            entries[i][margin_key] = alt[1]
+                            fixed_any = True
+                            break  # rebuild map after fix
+                    if fixed_any:
+                        break
+                if not fixed_any:
+                    break
+
+    def _try_two_digit_parse(self, token: str,
+                             field_size: int) -> Optional[Tuple[int, float]]:
+        """Force two-digit position interpretation of an ambiguous token.
+
+        Returns (pos, margin) if valid (pos ≤ field_size), else None.
+        Works for both fraction tokens ('121/2') and all-digit tokens ('11').
+        """
+        if not token or len(token) < 2:
+            return None
+
+        # Fraction tokens
+        frac_m = re.search(r"(\d)/(\d+)", token)
+        if frac_m:
+            num, den = int(frac_m.group(1)), int(frac_m.group(2))
+            if den <= 0 or num >= den:
+                return None
+            prefix = token[:frac_m.start()]
+            if not prefix or not prefix.isdigit() or len(prefix) < 2:
+                return None
+            pos_2d = int(prefix[:2])
+            if pos_2d > field_size:
+                return None
+            frac_val = num / den
+            rest = prefix[2:]
+            margin = (int(rest) if rest else 0) + frac_val
+            return (pos_2d, margin)
+
+        # All-digit tokens: '11' → pos=11, margin=0
+        if token.isdigit() and len(token) >= 2:
+            pos_2d = int(token[:2])
+            if pos_2d > field_size:
+                return None
+            margin = float(token[2:]) if len(token) > 2 else 0.0
+            return (pos_2d, margin)
+
+        return None
 
     def _parse_results_from_text(self, block: str, race_info: dict) -> List[Dict]:
         """Parse horse entries from Equibase chart PDF text.
@@ -524,6 +729,20 @@ class ChartPDFParser:
             r"(\d{1,2})\s+"                      # Start position
             r"(.+)$"                             # Rest: running positions + odds + comment
         )
+
+        # Pre-count field size for position disambiguation.
+        # Use max of matched lines and highest start position, since
+        # some horse lines may not match the regex (format quirks).
+        _count = 0
+        _max_start = 0
+        for ln in lines:
+            _m = horse_line_re.match(ln.strip()) if ln.strip() else None
+            if _m:
+                _count += 1
+                _s = _m.group(8)
+                if _s.isdigit():
+                    _max_start = max(_max_start, int(_s))
+        field_size = max(_count, _max_start)
 
         trainer_map = race_info.get("_trainer_map", {})
         owner_map = race_info.get("_owner_map", {})
@@ -564,6 +783,41 @@ class ChartPDFParser:
             except ValueError:
                 dollar_odds_int = ""
 
+            # --- Running positions/margins ---
+            # positions list has call tokens between Start and Odds.
+            # Count depends on distance:
+            #   ≤5.5F → [1/4, Str, Fin]         (3 tokens)
+            #   6-7.5F → [1/4, 1/2, Str, Fin]    (4 tokens)
+            #   ≥8F   → [1/4, 1/2, 3/4, Str, Fin](5 tokens)
+            # We assign from the end: Fin is last, Str is second-to-last,
+            # then remaining are 1st/2nd/3rd call in order.
+            n = len(positions)
+            pos_cols: Dict[str, object] = {}
+            if n >= 2:
+                p, mg = self._parse_pos_token(positions[-2], field_size)
+                pos_cols["pos_stretch"] = p
+                pos_cols["margin_stretch"] = mg
+                pos_cols["_raw_str"] = positions[-2]
+                p, mg = self._parse_pos_token(positions[-1], field_size)
+                pos_cols["pos_finish"] = p
+                pos_cols["margin_finish"] = mg
+                pos_cols["_raw_fin"] = positions[-1]
+            if n >= 3:
+                p, mg = self._parse_pos_token(positions[0], field_size)
+                pos_cols["pos_1st_call"] = p
+                pos_cols["margin_1st_call"] = mg
+                pos_cols["_raw_1st"] = positions[0]
+            if n >= 4:
+                p, mg = self._parse_pos_token(positions[1], field_size)
+                pos_cols["pos_2nd_call"] = p
+                pos_cols["margin_2nd_call"] = mg
+                pos_cols["_raw_2nd"] = positions[1]
+            if n >= 5:
+                p, mg = self._parse_pos_token(positions[2], field_size)
+                pos_cols["pos_3rd_call"] = p
+                pos_cols["margin_3rd_call"] = mg
+                pos_cols["_raw_3rd"] = positions[2]
+
             # Last raced parse
             lr = self._parse_last_raced_token(last_raced)
 
@@ -594,6 +848,8 @@ class ChartPDFParser:
             entry["dollar_odds"] = dollar_odds_int
             entry["medication"] = medication
             entry["comment"] = " ".join(comment_parts).replace(",", " ").strip()
+            entry["start_pos"] = int(_start) if _start.isdigit() else ""
+            entry.update(pos_cols)
             entry["age"] = age_default if age_default is not None else ""
             # Winner gets exact sex from Winner line; others use condition-derived default.
             if finish_pos == 1 and winner_sex:
@@ -606,6 +862,14 @@ class ChartPDFParser:
                 if c not in entry:
                     entry[c] = ""
             entries.append(entry)
+
+        # Fix ambiguous positions using duplicate detection
+        if entries:
+            self._validate_race_positions(entries, field_size)
+            # Strip raw tokens used for validation
+            for e in entries:
+                for k in ("_raw_1st", "_raw_2nd", "_raw_3rd", "_raw_str", "_raw_fin"):
+                    e.pop(k, None)
 
         return entries
 

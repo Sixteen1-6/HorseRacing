@@ -164,10 +164,12 @@ def map_table_columns(headers: List[str]) -> Dict[str, int]:
             col["comment"] = i
         elif any(k in hl for k in ["margin", "btn", "behind", "lengths"]) and "margin" not in col:
             col["margin"] = i
-        elif ("1st" in hl or "first" in hl) and "pos_1st" not in col:
+        elif ("1st" in hl or "first" in hl or hl == "1/4") and "pos_1st" not in col:
             col["pos_1st"] = i
-        elif ("2nd" in hl or "second" in hl) and "pos_2nd" not in col:
+        elif ("2nd" in hl or "second" in hl or hl == "1/2") and "pos_2nd" not in col:
             col["pos_2nd"] = i
+        elif hl == "3/4" and "pos_3rd" not in col:
+            col["pos_3rd"] = i
         elif "str" in hl and "start" not in hl and "pos_str" not in col:
             col["pos_str"] = i
         elif "start" in hl and "pos_start" not in col:

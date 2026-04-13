@@ -21,6 +21,13 @@ OUTPUT_COLUMNS = [
     "last_race_track", "last_race_date", "last_race_number", "last_race_finish",
     "track_code", "track_name", "race_date", "dollar_odds",
     "num_past_starts", "num_past_wins", "num_past_seconds", "num_past_thirds",
+    "start_pos",
+    "pos_1st_call", "margin_1st_call",
+    "pos_2nd_call", "margin_2nd_call",
+    "pos_3rd_call", "margin_3rd_call",
+    "pos_stretch", "margin_stretch",
+    "pos_finish", "margin_finish",
+    "temperature",
 ]
 
 CAREER_STAT_COLUMNS = ["num_past_starts", "num_past_wins", "num_past_seconds", "num_past_thirds"]
@@ -43,6 +50,8 @@ TRACKS = {
     "GPW": "Gulfstream Park West", "WRD": "Will Rogers Downs",
     "ZIA": "Zia Park", "FON": "Fonner Park", "AP": "Arlington",
     "ARP": "Arapahoe Park", "EMD": "Emerald Downs", "ALB": "Albuquerque Downs",
+    "PID": "Presque Isle Downs", "FAN": "Fairmount Park", "LA": "Los Alamitos",
+    "FE": "Fort Erie",
 }
 
 USER_AGENTS = [

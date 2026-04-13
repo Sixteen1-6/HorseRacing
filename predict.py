@@ -60,7 +60,7 @@ def engineer_features(df, jt_lookup=None):
             df.drop(columns=[col], inplace=True, errors='ignore')
 
     # Categorical dtype
-    cat_cols = ['surface', 'track_condition', 'weather', 'breed', 'sex',
+    cat_cols = ['surface', 'track_condition', 'weather', 'breed',
                 'medication', 'track_code', 'track_name', 'jockey', 'trainer',
                 'owner', 'horse_name', 'race_type']
     for col in cat_cols:
@@ -150,6 +150,19 @@ def engineer_features(df, jt_lookup=None):
             df['age'], bins=[0, 3, 5, 7, 100],
             labels=['Young', 'Prime', 'Mature', 'Veteran'], right=False
         )
+
+    # Sex re-encoding: replace raw categorical with orthogonal binaries
+    if 'sex' in df.columns:
+        sex_upper = df['sex'].astype(str).str.strip().str.upper()
+        df['is_female'] = sex_upper.isin(['FILLY', 'MARE', 'F', 'M']).astype(int)
+        df['is_gelding'] = sex_upper.isin(['GELDING', 'G']).astype(int)
+        race_group = ['track_code', 'race_date', 'race_number']
+        if all(c in df.columns for c in race_group):
+            race_sex_nunique = df.groupby(race_group, observed=False)['is_female'].transform('nunique')
+            df['is_restricted_sex_race'] = (race_sex_nunique == 1).astype(int)
+        else:
+            df['is_restricted_sex_race'] = 0
+        df.drop(columns=['sex'], inplace=True, errors='ignore')
 
     if all(c in df.columns for c in ['num_past_wins', 'num_past_starts']):
         df['num_past_wins'] = pd.to_numeric(df['num_past_wins'], errors='coerce').fillna(0)
