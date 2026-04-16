@@ -1,0 +1,137 @@
+{
+  "metadata": {
+    "track_code": "KEE",
+    "card_date": "2026-04-16",
+    "generated_at": "2026-04-16T18:26:33.193003Z",
+    "model_version": "v4",
+    "num_races": 1
+  },
+  "races": {
+    "race_4": {
+      "race_number": 4,
+      "num_horses": 8,
+      "horses": [
+        {
+          "rank": 1,
+          "horse_name": "Shangrala Road",
+          "jockey": "I Ortiz, Jr.",
+          "trainer": "B H Cox",
+          "odds": 1.2,
+          "predicted_finish": 1,
+          "model_probability": 0.359,
+          "top3_probability": 0.7782,
+          "market_probability": 0.4545,
+          "edge": 0.79,
+          "value_bet": false,
+          "kelly_bet": 0.0,
+          "ev_per_dollar": -0.569
+        },
+        {
+          "rank": 2,
+          "horse_name": "Mo Work",
+          "jockey": "L Saez",
+          "trainer": "G R Arnold II",
+          "odds": 4.0,
+          "predicted_finish": 2,
+          "model_probability": 0.1562,
+          "top3_probability": 0.485,
+          "market_probability": 0.2,
+          "edge": 0.78,
+          "value_bet": false,
+          "kelly_bet": 0.0,
+          "ev_per_dollar": -0.375
+        },
+        {
+          "rank": 3,
+          "horse_name": "Bite and Strike",
+          "jockey": "J Alvarado",
+          "trainer": "W I Mott",
+          "odds": 5.0,
+          "predicted_finish": 3,
+          "model_probability": 0.1117,
+          "top3_probability": 0.3778,
+          "market_probability": 0.1667,
+          "edge": 0.67,
+          "value_bet": false,
+          "kelly_bet": 0.0,
+          "ev_per_dollar": -0.442
+        },
+        {
+          "rank": 4,
+          "horse_name": "White Whale",
+          "jockey": "A Concepcion",
+          "trainer": "M A Tomlinson",
+          "odds": 6.0,
+          "predicted_finish": 4,
+          "model_probability": 0.099,
+          "top3_probability": 0.3432,
+          "market_probability": 0.1429,
+          "edge": 0.69,
+          "value_bet": false,
+          "kelly_bet": 0.0,
+          "ev_per_dollar": -0.406
+        },
+        {
+          "rank": 5,
+          "horse_name": "Attersee",
+          "jockey": "T Gaffalione",
+          "trainer": "N W Casse",
+          "odds": 8.0,
+          "predicted_finish": 5,
+          "model_probability": 0.0846,
+          "top3_probability": 0.2972,
+          "market_probability": 0.1111,
+          "edge": 0.76,
+          "value_bet": false,
+          "kelly_bet": 0.0,
+          "ev_per_dollar": -0.323
+        },
+        {
+          "rank": 6,
+          "horse_name": "La Houligan",
+          "jockey": "J L Ortiz",
+          "trainer": "G Compton",
+          "odds": 10.0,
+          "predicted_finish": 6,
+          "model_probability": 0.0846,
+          "top3_probability": 0.2854,
+          "market_probability": 0.0909,
+          "edge": 0.93,
+          "value_bet": false,
+          "kelly_bet": 0.0,
+          "ev_per_dollar": -0.154
+        },
+        {
+          "rank": 7,
+          "horse_name": "Fracture",
+          "jockey": "G Saez",
+          "trainer": "D Leitch",
+          "odds": 15.0,
+          "predicted_finish": 7,
+          "model_probability": 0.0544,
+          "top3_probability": 0.2232,
+          "market_probability": 0.0625,
+          "edge": 0.87,
+          "value_bet": false,
+          "kelly_bet": 0.0,
+          "ev_per_dollar": -0.184
+        },
+        {
+          "rank": 8,
+          "horse_name": "Mo Hair Sam",
+          "jockey": "F De La Cruz",
+          "trainer": "J A Hancock",
+          "odds": 20.0,
+          "predicted_finish": 8,
+          "model_probability": 0.0505,
+          "top3_probability": 0.21,
+          "market_probability": 0.0476,
+          "edge": 1.06,
+          "value_bet": false,
+          "kelly_bet": 0.0,
+          "ev_per_dollar": 0.01
+        }
+      ]
+    }
+  }
+}
