@@ -1,28 +1,28 @@
 combo,indices,probability,fair_odds,race_id,race_number,type
-Emirates Affair / Coastline Hottie / Sunset Harbour,"[np.int64(0), np.int64(5), np.int64(3)]",0.03896,25.7,race_1,1,TRIFECTA
-Emirates Affair / Coastline Hottie / Ask Amanda,"[np.int64(0), np.int64(5), np.int64(1)]",0.03548,28.2,race_1,1,TRIFECTA
-Emirates Affair / Coastline Hottie / Devil of Paradis,"[np.int64(0), np.int64(5), np.int64(2)]",0.03461,28.9,race_1,1,TRIFECTA
-Emirates Affair / Coastline Hottie / So Far So Good,"[np.int64(0), np.int64(5), np.int64(4)]",0.03364,29.7,race_1,1,TRIFECTA
-Coastline Hottie / Emirates Affair / Sunset Harbour,"[np.int64(5), np.int64(0), np.int64(3)]",0.03068,32.6,race_1,1,TRIFECTA
-Emirates Affair / Coastline Hottie,"[np.int64(0), np.int64(5)]",0.14268,7.0,race_1,1,EXACTA
-Coastline Hottie / Emirates Affair,"[np.int64(5), np.int64(0)]",0.11236,8.9,race_1,1,EXACTA
-Emirates Affair / Sunset Harbour,"[np.int64(0), np.int64(3)]",0.06833,14.6,race_1,1,EXACTA
-Paper Run / Castle Pines / Perfect Mo,"[np.int64(5), np.int64(9), np.int64(0)]",0.00768,130.2,race_2,2,TRIFECTA
-Paper Run / Perfect Mo / Castle Pines,"[np.int64(5), np.int64(0), np.int64(9)]",0.00717,139.4,race_2,2,TRIFECTA
-Castle Pines / Paper Run / Perfect Mo,"[np.int64(9), np.int64(5), np.int64(0)]",0.00697,143.4,race_2,2,TRIFECTA
-Paper Run / Castle Pines / Sing for Mo Money,"[np.int64(5), np.int64(9), np.int64(4)]",0.00658,152.0,race_2,2,TRIFECTA
-Paper Run / Castle Pines / Grandes Suenos,"[np.int64(5), np.int64(9), np.int64(2)]",0.00624,160.3,race_2,2,TRIFECTA
-Paper Run / Castle Pines,"[np.int64(5), np.int64(9)]",0.04413,22.7,race_2,2,EXACTA
-Castle Pines / Paper Run,"[np.int64(9), np.int64(5)]",0.04006,25.0,race_2,2,EXACTA
-Paper Run / Perfect Mo,"[np.int64(5), np.int64(0)]",0.03134,31.9,race_2,2,EXACTA
-Conquering Marin / Lucy McGee / Headspin,"[np.int64(6), np.int64(2), np.int64(7)]",0.00203,492.7,race_3,3,TRIFECTA
-Conquering Marin / Headspin / Lucy McGee,"[np.int64(6), np.int64(7), np.int64(2)]",0.00203,492.7,race_3,3,TRIFECTA
-Lucy McGee / Conquering Marin / Headspin,"[np.int64(2), np.int64(6), np.int64(7)]",0.00191,524.0,race_3,3,TRIFECTA
-Headspin / Conquering Marin / Lucy McGee,"[np.int64(7), np.int64(6), np.int64(2)]",0.00191,524.0,race_3,3,TRIFECTA
-Lucy McGee / Headspin / Conquering Marin,"[np.int64(2), np.int64(7), np.int64(6)]",0.00186,536.7,race_3,3,TRIFECTA
-Conquering Marin / Lucy McGee,"[np.int64(6), np.int64(2)]",0.01564,63.9,race_3,3,EXACTA
-Conquering Marin / Headspin,"[np.int64(6), np.int64(7)]",0.01564,63.9,race_3,3,EXACTA
-Lucy McGee / Conquering Marin,"[np.int64(2), np.int64(6)]",0.01471,68.0,race_3,3,EXACTA
+Emirates Affair / Devil of Paradis / Coastline Hottie,"[np.int64(0), np.int64(2), np.int64(5)]",0.03378,29.6,race_1,1,TRIFECTA
+Emirates Affair / Coastline Hottie / Devil of Paradis,"[np.int64(0), np.int64(5), np.int64(2)]",0.03345,29.9,race_1,1,TRIFECTA
+Emirates Affair / Devil of Paradis / Sunset Harbour,"[np.int64(0), np.int64(2), np.int64(3)]",0.02302,43.4,race_1,1,TRIFECTA
+Devil of Paradis / Emirates Affair / Coastline Hottie,"[np.int64(2), np.int64(0), np.int64(5)]",0.02225,44.9,race_1,1,TRIFECTA
+Emirates Affair / Coastline Hottie / Sunset Harbour,"[np.int64(0), np.int64(5), np.int64(3)]",0.02215,45.1,race_1,1,TRIFECTA
+Emirates Affair / Devil of Paradis,"[np.int64(0), np.int64(2)]",0.1025,9.8,race_1,1,EXACTA
+Emirates Affair / Coastline Hottie,"[np.int64(0), np.int64(5)]",0.09958,10.0,race_1,1,EXACTA
+Emirates Affair / Sunset Harbour,"[np.int64(0), np.int64(3)]",0.06787,14.7,race_1,1,EXACTA
+Ruiva / Arctic Wolf / Castle Pines,"[np.int64(0), np.int64(1), np.int64(11)]",0.00501,199.6,race_2,2,TRIFECTA
+Ruiva / Castle Pines / Arctic Wolf,"[np.int64(0), np.int64(11), np.int64(1)]",0.0048,208.4,race_2,2,TRIFECTA
+Ruiva / Arctic Wolf / Paper Run,"[np.int64(0), np.int64(1), np.int64(7)]",0.00451,221.6,race_2,2,TRIFECTA
+Arctic Wolf / Ruiva / Castle Pines,"[np.int64(1), np.int64(0), np.int64(11)]",0.00436,229.5,race_2,2,TRIFECTA
+Ruiva / Paper Run / Arctic Wolf,"[np.int64(0), np.int64(7), np.int64(1)]",0.00426,234.7,race_2,2,TRIFECTA
+Ruiva / Arctic Wolf,"[np.int64(0), np.int64(1)]",0.03424,29.2,race_2,2,EXACTA
+Arctic Wolf / Ruiva,"[np.int64(1), np.int64(0)]",0.02978,33.6,race_2,2,EXACTA
+Ruiva / Castle Pines,"[np.int64(0), np.int64(11)]",0.02628,38.0,race_2,2,EXACTA
+Headspin / Conquering Marin / Aurora Sky,"[np.int64(6), np.int64(5), np.int64(3)]",0.0106,94.3,race_3,3,TRIFECTA
+Headspin / Aurora Sky / Conquering Marin,"[np.int64(6), np.int64(3), np.int64(5)]",0.01051,95.1,race_3,3,TRIFECTA
+Headspin / Conquering Marin / Lucy McGee,"[np.int64(6), np.int64(5), np.int64(1)]",0.00977,102.4,race_3,3,TRIFECTA
+Conquering Marin / Headspin / Aurora Sky,"[np.int64(5), np.int64(6), np.int64(3)]",0.00962,104.0,race_3,3,TRIFECTA
+Headspin / Lucy McGee / Conquering Marin,"[np.int64(6), np.int64(1), np.int64(5)]",0.00951,105.2,race_3,3,TRIFECTA
+Headspin / Conquering Marin,"[np.int64(6), np.int64(5)]",0.04424,22.6,race_3,3,EXACTA
+Headspin / Aurora Sky,"[np.int64(6), np.int64(3)]",0.04278,23.4,race_3,3,EXACTA
+Conquering Marin / Headspin,"[np.int64(5), np.int64(6)]",0.04014,24.9,race_3,3,EXACTA
 Shangrala Road / Mo Work / Bite and Strike,"[np.int64(2), np.int64(3), np.int64(5)]",0.0174,57.5,race_4,4,TRIFECTA
 Shangrala Road / Bite and Strike / Mo Work,"[np.int64(2), np.int64(5), np.int64(3)]",0.01629,61.4,race_4,4,TRIFECTA
 Shangrala Road / Mo Work / White Whale,"[np.int64(2), np.int64(3), np.int64(0)]",0.01578,63.4,race_4,4,TRIFECTA
