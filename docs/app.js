@@ -1,7 +1,7 @@
 /* SharpLine Racing — v4 Frontend */
 
 const REPO = "Sixteen1-6/HorseRacing";
-const BRANCH = "luke-optimize";
+const BRANCH = "main";
 const CARD_DIR = "HorseRacing";
 const EDGE_THRESHOLD = 1.10;
 const POLL_INTERVAL = 5000;
