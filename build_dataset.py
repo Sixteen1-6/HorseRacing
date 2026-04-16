@@ -173,7 +173,24 @@ def clean_data(df):
             df = df[~zero_dist].copy()
             print(f"  Dropped {n_zero:,} rows with missing/zero distance")
 
-    # 4. Drop races with fewer than 2 horses (can't rank)
+    # 4. Fix sex: if only 1 horse in a race has sex, clear it
+    #    (winner-only artifact from PDF parser)
+    if "sex" in df.columns:
+        race_keys_sex = ["track_code", "race_date", "race_number"]
+        if all(c in df.columns for c in race_keys_sex):
+            has_sex = df["sex"].notna() & (df["sex"] != "")
+            sex_count = df.groupby(race_keys_sex, observed=False)["sex"].transform(
+                lambda s: (s.notna() & (s != "")).sum()
+            )
+            field_size_sex = df.groupby(race_keys_sex, observed=False)["sex"].transform("size")
+            # Clear sex where only 1 horse has it (winner-only bug)
+            bad_sex = has_sex & (sex_count == 1)
+            n_sex_fixed = bad_sex.sum()
+            if n_sex_fixed > 0:
+                df.loc[bad_sex, "sex"] = ""
+                print(f"  Fixed {n_sex_fixed:,} winner-only sex values")
+
+    # 5. Drop races with fewer than 2 horses (can't rank)
     race_keys = ["track_code", "race_date", "race_number"]
     if all(c in df.columns for c in race_keys):
         race_sizes = df.groupby(race_keys, observed=False)["horse_name"].transform("size")
