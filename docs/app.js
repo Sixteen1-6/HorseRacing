@@ -361,24 +361,29 @@ function renderBets() {
 /* ── Run Model ── */
 
 async function runModel() {
-  if (!state.pat) { document.getElementById("patDialog").showModal(); return; }
-  const runId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-
-  setStatus("running", "Running...");
+  setStatus("running", "Updating...");
   try {
-    await ghDispatch({
-      run_id: runId,
-      track_code: "KEE",
-      card_date: new Date().toISOString().split("T")[0],
-      race_num: state.currentRace || "1",
-      edits: {
-        scratches: [...state.edits.scratches],
-        overrides: state.edits.overrides,
-        jockeys: state.edits.jockeys,
-        added: state.edits.added,
-      },
-    });
-    pollForResults(runId);
+    // Re-apply predictions with current scratches/odds edits
+    // Predictions are already loaded — just re-render with edits applied
+    if (state.predictions) {
+      renderRaceTabs();
+      renderResults();
+      renderExotics();
+      renderBets();
+      setStatus("done", "Updated");
+    } else {
+      // Try loading predictions from repo
+      await loadPredictions();
+      if (state.predictions) {
+        renderRaceTabs();
+        renderResults();
+        renderExotics();
+        renderBets();
+        setStatus("done", "Loaded");
+      } else {
+        setStatus("error", "No predictions found");
+      }
+    }
   } catch (e) {
     setStatus("error", "Failed");
     console.error(e);
