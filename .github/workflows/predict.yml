@@ -80,4 +80,5 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -f predictions/ race_predictions/
           git diff --staged --quiet || git commit -m "Predictions: ${TRACK_CODE} ${CARD_DATE} R${RACE_NUM}"
+          git pull --rebase origin main || true
           git push
