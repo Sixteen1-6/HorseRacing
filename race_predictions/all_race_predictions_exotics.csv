@@ -31,14 +31,14 @@ Shangrala Road / Mo Work / Attersee,"[np.int64(2), np.int64(3), np.int64(5)]",0.
 Shangrala Road / Mo Work,"[np.int64(2), np.int64(3)]",0.09162,10.9,race_4,4,EXACTA
 Mo Work / Shangrala Road,"[np.int64(3), np.int64(2)]",0.07748,12.9,race_4,4,EXACTA
 Shangrala Road / Bite and Strike,"[np.int64(2), np.int64(4)]",0.06661,15.0,race_4,4,EXACTA
-Just a Touch / Maycocks Bay / Judge Davis,"[np.int64(4), np.int64(0), np.int64(8)]",0.00683,146.5,race_5,5,TRIFECTA
-Just a Touch / Maycocks Bay / Legalize,"[np.int64(4), np.int64(0), np.int64(2)]",0.00659,151.8,race_5,5,TRIFECTA
-Just a Touch / Judge Davis / Maycocks Bay,"[np.int64(4), np.int64(8), np.int64(0)]",0.00644,155.2,race_5,5,TRIFECTA
-Just a Touch / Legalize / Maycocks Bay,"[np.int64(4), np.int64(2), np.int64(0)]",0.00618,161.7,race_5,5,TRIFECTA
-Maycocks Bay / Just a Touch / Judge Davis,"[np.int64(0), np.int64(4), np.int64(8)]",0.00593,168.6,race_5,5,TRIFECTA
-Just a Touch / Maycocks Bay,"[np.int64(4), np.int64(0)]",0.04194,23.8,race_5,5,EXACTA
-Maycocks Bay / Just a Touch,"[np.int64(0), np.int64(4)]",0.03643,27.4,race_5,5,EXACTA
-Just a Touch / Judge Davis,"[np.int64(4), np.int64(8)]",0.03068,32.6,race_5,5,EXACTA
+Just a Touch / Maycocks Bay / Stars and Strides,"[np.int64(3), np.int64(0), np.int64(4)]",0.02314,43.2,race_5,5,TRIFECTA
+Just a Touch / Stars and Strides / Maycocks Bay,"[np.int64(3), np.int64(4), np.int64(0)]",0.02198,45.5,race_5,5,TRIFECTA
+Just a Touch / Maycocks Bay / Judge Davis,"[np.int64(3), np.int64(0), np.int64(6)]",0.01906,52.5,race_5,5,TRIFECTA
+Just a Touch / Judge Davis / Maycocks Bay,"[np.int64(3), np.int64(6), np.int64(0)]",0.01733,57.7,race_5,5,TRIFECTA
+Maycocks Bay / Just a Touch / Stars and Strides,"[np.int64(0), np.int64(3), np.int64(4)]",0.01673,59.8,race_5,5,TRIFECTA
+Just a Touch / Maycocks Bay,"[np.int64(3), np.int64(0)]",0.08697,11.5,race_5,5,EXACTA
+Just a Touch / Stars and Strides,"[np.int64(3), np.int64(4)]",0.07255,13.8,race_5,5,EXACTA
+Maycocks Bay / Just a Touch,"[np.int64(0), np.int64(3)]",0.06287,15.9,race_5,5,EXACTA
 Clairita / Ivory and Ebony / Metfardeh,"[np.int64(6), np.int64(2), np.int64(3)]",0.03466,28.9,race_6,6,TRIFECTA
 Clairita / Metfardeh / Ivory and Ebony,"[np.int64(6), np.int64(3), np.int64(2)]",0.03323,30.1,race_6,6,TRIFECTA
 Clairita / Ivory and Ebony / Union Mist,"[np.int64(6), np.int64(2), np.int64(0)]",0.02535,39.4,race_6,6,TRIFECTA

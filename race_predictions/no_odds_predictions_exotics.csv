@@ -31,14 +31,14 @@ Fracture / Mo Work / White Whale,"[np.int64(6), np.int64(3), np.int64(0)]",0.022
 Fracture / Mo Work,"[np.int64(6), np.int64(3)]",0.09192,10.9,race_4,4,EXACTA
 Mo Work / Fracture,"[np.int64(3), np.int64(6)]",0.09192,10.9,race_4,4,EXACTA
 Fracture / Mo Hair Sam,"[np.int64(6), np.int64(1)]",0.055,18.2,race_4,4,EXACTA
-Miranda Rights / Judge Davis / Legalize,"[np.int64(3), np.int64(8), np.int64(2)]",0.0135,74.1,race_5,5,TRIFECTA
-Judge Davis / Miranda Rights / Legalize,"[np.int64(8), np.int64(3), np.int64(2)]",0.0135,74.1,race_5,5,TRIFECTA
-Miranda Rights / Judge Davis / California Burrito,"[np.int64(3), np.int64(8), np.int64(9)]",0.01317,75.9,race_5,5,TRIFECTA
-Judge Davis / Miranda Rights / California Burrito,"[np.int64(8), np.int64(3), np.int64(9)]",0.01317,75.9,race_5,5,TRIFECTA
-Miranda Rights / Legalize / Judge Davis,"[np.int64(3), np.int64(2), np.int64(8)]",0.01165,85.8,race_5,5,TRIFECTA
-Miranda Rights / Judge Davis,"[np.int64(3), np.int64(8)]",0.06457,15.5,race_5,5,EXACTA
-Judge Davis / Miranda Rights,"[np.int64(8), np.int64(3)]",0.06457,15.5,race_5,5,EXACTA
-Miranda Rights / Legalize,"[np.int64(3), np.int64(2)]",0.03671,27.2,race_5,5,EXACTA
+Judge Davis / Miranda Rights / California Burrito,"[np.int64(6), np.int64(2), np.int64(7)]",0.03821,26.2,race_5,5,TRIFECTA
+Miranda Rights / Judge Davis / California Burrito,"[np.int64(2), np.int64(6), np.int64(7)]",0.0358,27.9,race_5,5,TRIFECTA
+Judge Davis / California Burrito / Miranda Rights,"[np.int64(6), np.int64(7), np.int64(2)]",0.03125,32.0,race_5,5,TRIFECTA
+Miranda Rights / California Burrito / Judge Davis,"[np.int64(2), np.int64(7), np.int64(6)]",0.02784,35.9,race_5,5,TRIFECTA
+California Burrito / Judge Davis / Miranda Rights,"[np.int64(7), np.int64(6), np.int64(2)]",0.02281,43.8,race_5,5,TRIFECTA
+Judge Davis / Miranda Rights,"[np.int64(6), np.int64(2)]",0.11519,8.7,race_5,5,EXACTA
+Miranda Rights / Judge Davis,"[np.int64(2), np.int64(6)]",0.10793,9.3,race_5,5,EXACTA
+Judge Davis / California Burrito,"[np.int64(6), np.int64(7)]",0.06892,14.5,race_5,5,EXACTA
 Metfardeh / Quinn's Promise / Missy Bee,"[np.int64(3), np.int64(4), np.int64(5)]",0.01308,76.4,race_6,6,TRIFECTA
 Metfardeh / Quinn's Promise / Oraia,"[np.int64(3), np.int64(4), np.int64(1)]",0.01308,76.4,race_6,6,TRIFECTA
 Metfardeh / Missy Bee / Quinn's Promise,"[np.int64(3), np.int64(5), np.int64(4)]",0.01265,79.1,race_6,6,TRIFECTA
