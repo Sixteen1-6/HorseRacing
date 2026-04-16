@@ -136,6 +136,16 @@ async function loadPredictions() {
       if (!state.predictions[rn]) state.predictions[rn] = [];
       state.predictions[rn].push(row);
     });
+    // Load Model B (no odds) predictions
+    try {
+      const csvB = await ghContents("race_predictions/no_odds_predictions.csv");
+      state.predictionsB = {};
+      parseCSV(csvB).forEach(row => {
+        const rn = row.race_number;
+        if (!state.predictionsB[rn]) state.predictionsB[rn] = [];
+        state.predictionsB[rn].push(row);
+      });
+    } catch (e) { state.predictionsB = {}; }
     // Also load exotics
     try {
       const exCsv = await ghContents("race_predictions/all_race_predictions_exotics.csv");
@@ -148,6 +158,7 @@ async function loadPredictions() {
     } catch (e) { state.exotics = {}; }
   } catch (e) {
     state.predictions = null;
+    state.predictionsB = {};
     state.exotics = {};
   }
 }
@@ -274,12 +285,41 @@ function renderResults() {
   signal.className = `signal ${hasEdge ? "edge" : "pass"}`;
   signal.textContent = hasEdge ? "EDGE" : "PASS";
 
+  // Build Model B lookup for this race
+  const modelB = {};
+  if (state.predictionsB && state.predictionsB[rn]) {
+    state.predictionsB[rn].forEach(p => {
+      modelB[p.horse_name] = {
+        rank: parseInt(p.predicted_rank),
+        winPct: parseFloat(p.win_probability),
+      };
+    });
+  }
+
   tbody.innerHTML = "";
   preds.forEach(p => {
     const isValue = parseFloat(p.edge) >= EDGE_THRESHOLD;
     const tr = document.createElement("tr");
     if (isValue) tr.classList.add("value-bet");
     const kelly = parseFloat(p.kelly_bet) || 0;
+    const rankA = parseInt(p.predicted_rank);
+
+    // Model B comparison
+    const b = modelB[p.horse_name];
+    let bRankStr = "";
+    let signalStr = "";
+    if (b) {
+      bRankStr = `#${b.rank} (${(b.winPct * 100).toFixed(1)}%)`;
+      const diff = b.rank - rankA;
+      if (Math.abs(diff) <= 1) {
+        signalStr = '<span class="signal-tag signal-strong">AGREE</span>';
+      } else if (diff < -1) {
+        signalStr = '<span class="signal-tag signal-hidden">HIDDEN VALUE</span>';
+      } else if (diff > 1) {
+        signalStr = '<span class="signal-tag signal-odds">ODDS-DRIVEN</span>';
+      }
+    }
+
     tr.innerHTML = `
       <td>${p.predicted_rank}</td>
       <td>${p.horse_name} ${isValue ? '<span class="edge-tag">VALUE</span>' : ''}</td>
@@ -288,6 +328,8 @@ function renderResults() {
       <td>${p.odds || p.dollar_odds || ""}</td>
       <td>${parseFloat(p.edge) >= 1.0 ? parseFloat(p.edge).toFixed(2) + 'x' : ''}</td>
       <td>${kelly > 0 ? '$' + kelly.toFixed(0) : ''}</td>
+      <td>${bRankStr}</td>
+      <td>${signalStr}</td>
     `;
     tbody.appendChild(tr);
   });

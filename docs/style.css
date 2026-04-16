@@ -106,6 +106,10 @@ main { max-width: 880px; margin: 0 auto; padding: 24px; }
 .results-table tr.value-bet { background: #f0faf3; }
 .results-table tr.value-bet td:first-child { border-left: 3px solid var(--edge-green); }
 .edge-tag { background: #e6f9ed; color: var(--edge-green); padding: 2px 8px; border-radius: 4px; font-size: 0.68rem; font-weight: 700; margin-left: 6px; }
+.signal-tag { padding: 2px 8px; border-radius: 4px; font-size: 0.65rem; font-weight: 700; white-space: nowrap; }
+.signal-strong { background: #e6f9ed; color: var(--edge-green); }
+.signal-hidden { background: #fff3e0; color: var(--orange); }
+.signal-odds { background: #f3e5f5; color: var(--purple); }
 
 /* Exotics */
 .exotics-section { margin-bottom: 20px; }
