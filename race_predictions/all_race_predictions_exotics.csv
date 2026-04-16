@@ -7,14 +7,14 @@ Coastline Hottie / Emirates Affair / Sunset Harbour,"[np.int64(5), np.int64(0), 
 Emirates Affair / Coastline Hottie,"[np.int64(0), np.int64(5)]",0.14268,7.0,race_1,1,EXACTA
 Coastline Hottie / Emirates Affair,"[np.int64(5), np.int64(0)]",0.11236,8.9,race_1,1,EXACTA
 Emirates Affair / Sunset Harbour,"[np.int64(0), np.int64(3)]",0.06833,14.6,race_1,1,EXACTA
-Paper Run / Castle Pines / Perfect Mo,"[np.int64(5), np.int64(9), np.int64(0)]",0.00964,103.8,race_2,2,TRIFECTA
-Paper Run / Perfect Mo / Castle Pines,"[np.int64(5), np.int64(0), np.int64(9)]",0.00904,110.6,race_2,2,TRIFECTA
-Castle Pines / Paper Run / Perfect Mo,"[np.int64(9), np.int64(5), np.int64(0)]",0.00864,115.7,race_2,2,TRIFECTA
-Castle Pines / Perfect Mo / Paper Run,"[np.int64(9), np.int64(0), np.int64(5)]",0.00761,131.4,race_2,2,TRIFECTA
-Paper Run / Castle Pines / Sing for Mo Money,"[np.int64(5), np.int64(9), np.int64(4)]",0.00741,135.0,race_2,2,TRIFECTA
-Paper Run / Castle Pines,"[np.int64(5), np.int64(9)]",0.04946,20.2,race_2,2,EXACTA
-Castle Pines / Paper Run,"[np.int64(9), np.int64(5)]",0.04436,22.5,race_2,2,EXACTA
-Paper Run / Perfect Mo,"[np.int64(5), np.int64(0)]",0.03691,27.1,race_2,2,EXACTA
+Paper Run / Castle Pines / Perfect Mo,"[np.int64(5), np.int64(9), np.int64(0)]",0.00768,130.2,race_2,2,TRIFECTA
+Paper Run / Perfect Mo / Castle Pines,"[np.int64(5), np.int64(0), np.int64(9)]",0.00717,139.4,race_2,2,TRIFECTA
+Castle Pines / Paper Run / Perfect Mo,"[np.int64(9), np.int64(5), np.int64(0)]",0.00697,143.4,race_2,2,TRIFECTA
+Paper Run / Castle Pines / Sing for Mo Money,"[np.int64(5), np.int64(9), np.int64(4)]",0.00658,152.0,race_2,2,TRIFECTA
+Paper Run / Castle Pines / Grandes Suenos,"[np.int64(5), np.int64(9), np.int64(2)]",0.00624,160.3,race_2,2,TRIFECTA
+Paper Run / Castle Pines,"[np.int64(5), np.int64(9)]",0.04413,22.7,race_2,2,EXACTA
+Castle Pines / Paper Run,"[np.int64(9), np.int64(5)]",0.04006,25.0,race_2,2,EXACTA
+Paper Run / Perfect Mo,"[np.int64(5), np.int64(0)]",0.03134,31.9,race_2,2,EXACTA
 Conquering Marin / Lucy McGee / Headspin,"[np.int64(6), np.int64(2), np.int64(7)]",0.00203,492.7,race_3,3,TRIFECTA
 Conquering Marin / Headspin / Lucy McGee,"[np.int64(6), np.int64(7), np.int64(2)]",0.00203,492.7,race_3,3,TRIFECTA
 Lucy McGee / Conquering Marin / Headspin,"[np.int64(2), np.int64(6), np.int64(7)]",0.00191,524.0,race_3,3,TRIFECTA
