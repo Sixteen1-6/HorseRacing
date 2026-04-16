@@ -360,6 +360,7 @@ function renderBets() {
 /* ── Run Model ── */
 
 async function runModel() {
+  console.log("runModel clicked, pat:", state.pat ? "set" : "empty");
   if (!state.pat) { document.getElementById("patDialog").showModal(); return; }
 
   const runId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
