@@ -2,7 +2,7 @@
   "metadata": {
     "track_code": "KEE",
     "card_date": "2026-04-16",
-    "generated_at": "2026-04-16T16:48:12.588760Z",
+    "generated_at": "2026-04-16T16:50:58.068827Z",
     "model_version": "v4",
     "num_races": 1
   },
@@ -18,13 +18,13 @@
           "trainer": "R B Hess, Jr.",
           "odds": 0.6,
           "predicted_finish": 1,
-          "model_probability": 0.3919,
-          "top3_probability": 0.8532,
+          "model_probability": 0.394,
+          "top3_probability": 0.8522,
           "market_probability": 0.625,
           "edge": 0.63,
           "value_bet": false,
           "kelly_bet": 0.0,
-          "ev_per_dollar": -0.765
+          "ev_per_dollar": -0.764
         },
         {
           "rank": 2,
@@ -33,13 +33,13 @@
           "trainer": "C W Axmaker",
           "odds": 2.5,
           "predicted_finish": 2,
-          "model_probability": 0.2475,
-          "top3_probability": 0.705,
+          "model_probability": 0.2489,
+          "top3_probability": 0.7166,
           "market_probability": 0.2857,
           "edge": 0.87,
           "value_bet": false,
           "kelly_bet": 0.0,
-          "ev_per_dollar": -0.381
+          "ev_per_dollar": -0.378
         },
         {
           "rank": 3,
@@ -48,43 +48,43 @@
           "trainer": "C A David",
           "odds": 7.0,
           "predicted_finish": 3,
-          "model_probability": 0.0997,
-          "top3_probability": 0.4092,
+          "model_probability": 0.1003,
+          "top3_probability": 0.3938,
           "market_probability": 0.125,
           "edge": 0.8,
           "value_bet": false,
           "kelly_bet": 0.0,
-          "ev_per_dollar": -0.302
+          "ev_per_dollar": -0.298
         },
         {
           "rank": 4,
           "horse_name": "Ask Amanda",
           "jockey": "W A Rodriguez",
           "trainer": "J Antonuik",
-          "odds": 9.0,
+          "odds": 10.0,
           "predicted_finish": 4,
-          "model_probability": 0.0888,
-          "top3_probability": 0.363,
-          "market_probability": 0.1,
-          "edge": 0.89,
+          "model_probability": 0.0866,
+          "top3_probability": 0.3486,
+          "market_probability": 0.0909,
+          "edge": 0.95,
           "value_bet": false,
           "kelly_bet": 0.0,
-          "ev_per_dollar": -0.2
+          "ev_per_dollar": -0.134
         },
         {
           "rank": 5,
           "horse_name": "Devil of Paradis",
           "jockey": "C Roman",
           "trainer": "M Evans II",
-          "odds": 11.0,
+          "odds": 10.0,
           "predicted_finish": 5,
-          "model_probability": 0.0888,
-          "top3_probability": 0.3486,
-          "market_probability": 0.0833,
-          "edge": 1.07,
+          "model_probability": 0.0866,
+          "top3_probability": 0.3574,
+          "market_probability": 0.0909,
+          "edge": 0.95,
           "value_bet": false,
           "kelly_bet": 0.0,
-          "ev_per_dollar": -0.023
+          "ev_per_dollar": -0.134
         },
         {
           "rank": 6,
@@ -93,13 +93,13 @@
           "trainer": "A Decker",
           "odds": 12.0,
           "predicted_finish": 6,
-          "model_probability": 0.0832,
-          "top3_probability": 0.321,
+          "model_probability": 0.0836,
+          "top3_probability": 0.3314,
           "market_probability": 0.0769,
-          "edge": 1.08,
+          "edge": 1.09,
           "value_bet": false,
           "kelly_bet": 0.0,
-          "ev_per_dollar": -0.002
+          "ev_per_dollar": 0.004
         }
       ]
     }
