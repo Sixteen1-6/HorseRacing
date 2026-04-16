@@ -484,7 +484,8 @@ document.getElementById("resetToken").onclick = (e) => {
   e.preventDefault();
   localStorage.removeItem("sharpline_pat");
   state.pat = "";
-  alert("Token cleared");
+  alert("Token cleared. Click Run Model to enter a new one.");
+  document.getElementById("patDialog").showModal();
 };
 document.getElementById("reloadCard").onclick = (e) => {
   e.preventDefault();
