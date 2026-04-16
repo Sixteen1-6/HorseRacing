@@ -23,14 +23,14 @@ Lucy McGee / Headspin / Conquering Marin,"[np.int64(2), np.int64(7), np.int64(6)
 Conquering Marin / Lucy McGee,"[np.int64(6), np.int64(2)]",0.01564,63.9,race_3,3,EXACTA
 Conquering Marin / Headspin,"[np.int64(6), np.int64(7)]",0.01564,63.9,race_3,3,EXACTA
 Lucy McGee / Conquering Marin,"[np.int64(2), np.int64(6)]",0.01471,68.0,race_3,3,EXACTA
-Shangrala Road / Mo Work / Bite and Strike,"[np.int64(2), np.int64(3), np.int64(5)]",0.0174,57.5,race_4,4,TRIFECTA
-Shangrala Road / Bite and Strike / Mo Work,"[np.int64(2), np.int64(5), np.int64(3)]",0.01629,61.4,race_4,4,TRIFECTA
-Shangrala Road / Mo Work / White Whale,"[np.int64(2), np.int64(3), np.int64(0)]",0.01578,63.4,race_4,4,TRIFECTA
-Shangrala Road / White Whale / Mo Work,"[np.int64(2), np.int64(0), np.int64(3)]",0.0145,68.9,race_4,4,TRIFECTA
-Shangrala Road / Mo Work / Attersee,"[np.int64(2), np.int64(3), np.int64(6)]",0.0139,71.9,race_4,4,TRIFECTA
-Shangrala Road / Mo Work,"[np.int64(2), np.int64(3)]",0.07985,12.5,race_4,4,EXACTA
-Shangrala Road / Bite and Strike,"[np.int64(2), np.int64(5)]",0.06084,16.4,race_4,4,EXACTA
-Mo Work / Shangrala Road,"[np.int64(3), np.int64(2)]",0.05615,17.8,race_4,4,EXACTA
+Shangrala Road / Mo Work / La Houligan,"[np.int64(2), np.int64(3), np.int64(4)]",0.01766,56.6,race_4,4,TRIFECTA
+Shangrala Road / La Houligan / Mo Work,"[np.int64(2), np.int64(4), np.int64(3)]",0.0175,57.1,race_4,4,TRIFECTA
+Mo Work / Shangrala Road / La Houligan,"[np.int64(3), np.int64(2), np.int64(4)]",0.01507,66.3,race_4,4,TRIFECTA
+La Houligan / Shangrala Road / Mo Work,"[np.int64(4), np.int64(2), np.int64(3)]",0.01475,67.8,race_4,4,TRIFECTA
+Mo Work / La Houligan / Shangrala Road,"[np.int64(3), np.int64(4), np.int64(2)]",0.01345,74.3,race_4,4,TRIFECTA
+Shangrala Road / Mo Work,"[np.int64(2), np.int64(3)]",0.06162,16.2,race_4,4,EXACTA
+Shangrala Road / La Houligan,"[np.int64(2), np.int64(4)]",0.0598,16.7,race_4,4,EXACTA
+Mo Work / Shangrala Road,"[np.int64(3), np.int64(2)]",0.0526,19.0,race_4,4,EXACTA
 Just a Touch / Maycocks Bay / Judge Davis,"[np.int64(4), np.int64(0), np.int64(8)]",0.00683,146.5,race_5,5,TRIFECTA
 Just a Touch / Maycocks Bay / Legalize,"[np.int64(4), np.int64(0), np.int64(2)]",0.00659,151.8,race_5,5,TRIFECTA
 Just a Touch / Judge Davis / Maycocks Bay,"[np.int64(4), np.int64(8), np.int64(0)]",0.00644,155.2,race_5,5,TRIFECTA
