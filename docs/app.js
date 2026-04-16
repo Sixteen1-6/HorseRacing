@@ -45,13 +45,27 @@ async function ghDispatch(payload) {
 
 function parseCSV(text) {
   const lines = text.trim().split("\n");
-  const headers = lines[0].split(",").map(h => h.trim());
+  const headers = parseCsvLine(lines[0]);
   return lines.slice(1).map(line => {
-    const vals = line.split(",");
+    const vals = parseCsvLine(line);
     const obj = {};
     headers.forEach((h, i) => obj[h] = (vals[i] || "").trim());
     return obj;
   });
+}
+
+function parseCsvLine(line) {
+  const result = [];
+  let current = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') { inQuotes = !inQuotes; continue; }
+    if (ch === ',' && !inQuotes) { result.push(current.trim()); current = ""; continue; }
+    current += ch;
+  }
+  result.push(current.trim());
+  return result;
 }
 
 /* ── Card Discovery ── */
