@@ -26,7 +26,7 @@ import argparse
 from scipy.special import softmax
 from itertools import permutations, combinations
 
-# ── Helpers ──
+# -- Helpers --
 
 def parse_time_to_seconds(time_str):
     if pd.isna(time_str): return np.nan
@@ -45,7 +45,7 @@ def calculate_days_between(d1, d2):
     return (d1 - d2).days
 
 
-# ── Feature Engineering (mirrors model.py's load_and_engineer_features) ──
+# -- Feature Engineering (mirrors model.py's load_and_engineer_features) --
 
 def engineer_features(df, jt_lookup=None):
     """Apply the same feature engineering as training."""
@@ -310,7 +310,7 @@ def estimate_top3_probs(scores, n):
     return top3_counts / n_sims
 
 
-# ── Harville exotic pricing ──
+# -- Harville exotic pricing --
 
 HARVILLE_LAMBDA = 0.81  # Bacon-Shone/Lo correction
 
@@ -383,29 +383,29 @@ def get_top_exotic_combos(win_probs, horse_names, horse_odds, top_n=5, combo_typ
     return results[:top_n]
 
 
-# ── Kelly sizing ──
+# -- Kelly sizing --
 
 KELLY_FRACTION = 0.25
 KELLY_CAP_PCT = 0.03
-MIN_EDGE_PCT = 0.08
+MIN_EDGE_RATIO = 1.10  # only bet when model_prob > implied_prob * 1.10
 
 def kelly_size(model_prob, dollar_odds, bankroll):
-    """Returns (bet_amount, edge). 0 if no bet."""
+    """Returns (bet_amount, edge_ratio). 0 if no bet."""
     if np.isnan(dollar_odds) or dollar_odds <= 0 or np.isnan(model_prob):
         return 0.0, 0.0
     decimal_odds = dollar_odds + 1
     implied = 1.0 / decimal_odds
-    edge = model_prob - implied
-    if edge < MIN_EDGE_PCT:
-        return 0.0, edge
+    edge_ratio = model_prob / implied if implied > 0 else 0
+    if edge_ratio < MIN_EDGE_RATIO:
+        return 0.0, edge_ratio
     kelly_f = (model_prob * decimal_odds - 1) / (decimal_odds - 1)
     kelly_f = max(kelly_f, 0)
     bet = bankroll * KELLY_FRACTION * kelly_f
     bet = min(bet, bankroll * KELLY_CAP_PCT, 500)
-    return round(bet, 2), round(edge, 4)
+    return round(bet, 2), round(edge_ratio, 4)
 
 
-# ── Pace narrative ──
+# -- Pace narrative --
 
 def pace_narrative(running_styles):
     """Generate pace scenario description from horse styles."""
@@ -639,19 +639,19 @@ def main():
         confidence = race_rows['confidence'].iloc[0] if 'confidence' in race_rows.columns else ''
         pace_text = race_rows['pace_narrative'].iloc[0] if 'pace_narrative' in race_rows.columns else ''
 
-        print(f"\n{'━' * 80}")
+        print(f"\n{'=' * 80}")
         print(f"  RACE {race_num}  |  {len(race_rows)} horses  |  Confidence: {confidence}")
         if pace_text:
             print(f"  Pace: {pace_text}")
-        print(f"{'━' * 80}")
+        print(f"{'=' * 80}")
         print(f"  {'Horse':<22} {'Style':>5} {'Rank':>5} {'Win%':>7} {'Top3%':>7} {'Odds':>6} {'Edge':>6} {'Kelly$':>8}")
-        print(f"  {'─' * 72}")
+        print(f"  {'-' * 72}")
         for _, row in race_rows.iterrows():
             odds_str = f"{row['odds']:.0f}" if pd.notna(row.get('odds')) and row.get('odds') else ''
             edge_str = f"{row['edge']:.2f}" if row.get('edge') and row.get('edge', 0) > 1.0 else ''
             kelly_str = f"${row['kelly_bet']:.0f}" if row.get('kelly_bet', 0) > 0 else ''
             style_str = str(row.get('running_style', ''))
-            marker = ' <<' if row.get('value_bet') == 'YES' else ''
+            marker = ' **' if row.get('value_bet') == 'YES' else ''
             print(f"  {row['horse_name']:<22} {style_str:>5} {row['predicted_rank']:>5} "
                   f"{row['win_probability']:>6.1%} {row['top3_probability']:>6.1%} "
                   f"{odds_str:>6} {edge_str:>6} {kelly_str:>8}{marker}")
