@@ -1,12 +1,12 @@
 combo,indices,probability,fair_odds,race_id,race_number,type
-Emirates Affair / Ask Amanda / Coastline Hottie,"[np.int64(0), np.int64(1), np.int64(4)]",0.02172,46.1,race_1,1,TRIFECTA
-Ask Amanda / Emirates Affair / Coastline Hottie,"[np.int64(1), np.int64(0), np.int64(4)]",0.02172,46.1,race_1,1,TRIFECTA
-Emirates Affair / Ask Amanda / So Far So Good,"[np.int64(0), np.int64(1), np.int64(3)]",0.02032,49.2,race_1,1,TRIFECTA
-Ask Amanda / Emirates Affair / So Far So Good,"[np.int64(1), np.int64(0), np.int64(3)]",0.02032,49.2,race_1,1,TRIFECTA
-Emirates Affair / Coastline Hottie / Ask Amanda,"[np.int64(0), np.int64(4), np.int64(1)]",0.01972,50.7,race_1,1,TRIFECTA
-Emirates Affair / Ask Amanda,"[np.int64(0), np.int64(1)]",0.06989,14.3,race_1,1,EXACTA
-Ask Amanda / Emirates Affair,"[np.int64(1), np.int64(0)]",0.06989,14.3,race_1,1,EXACTA
-Emirates Affair / Coastline Hottie,"[np.int64(0), np.int64(4)]",0.05273,19.0,race_1,1,EXACTA
+Emirates Affair / Ask Amanda / Sunset Harbour,"[np.int64(0), np.int64(1), np.int64(3)]",0.01281,78.1,race_1,1,TRIFECTA
+Ask Amanda / Emirates Affair / Sunset Harbour,"[np.int64(1), np.int64(0), np.int64(3)]",0.01265,79.1,race_1,1,TRIFECTA
+Emirates Affair / Sunset Harbour / Ask Amanda,"[np.int64(0), np.int64(3), np.int64(1)]",0.01226,81.6,race_1,1,TRIFECTA
+Ask Amanda / Sunset Harbour / Emirates Affair,"[np.int64(1), np.int64(3), np.int64(0)]",0.012,83.3,race_1,1,TRIFECTA
+Emirates Affair / Ask Amanda / Coastline Hottie,"[np.int64(0), np.int64(1), np.int64(5)]",0.01199,83.4,race_1,1,TRIFECTA
+Emirates Affair / Ask Amanda,"[np.int64(0), np.int64(1)]",0.04876,20.5,race_1,1,EXACTA
+Ask Amanda / Emirates Affair,"[np.int64(1), np.int64(0)]",0.04813,20.8,race_1,1,EXACTA
+Emirates Affair / Sunset Harbour,"[np.int64(0), np.int64(3)]",0.0416,24.0,race_1,1,EXACTA
 Castle Pines / Ruiva / Perfect Mo,"[np.int64(11), np.int64(0), np.int64(2)]",0.00107,938.4,race_2,2,TRIFECTA
 Castle Pines / Ruiva / Arctic Wolf,"[np.int64(11), np.int64(0), np.int64(1)]",0.00107,938.4,race_2,2,TRIFECTA
 Castle Pines / Ruiva / Grandes Suenos,"[np.int64(11), np.int64(0), np.int64(4)]",0.00107,938.4,race_2,2,TRIFECTA
