@@ -185,7 +185,7 @@ function renderEntries() {
   // Pace narrative from predictions
   const paceEl = document.getElementById("paceNarrative");
   if (state.predictions && state.predictions[rn]) {
-    const pn = state.predictions[rn].find(p => p.pace_narrative && p.pace_narrative !== "");
+    const pn = state.predictions[rn].find(p => p.pace_narrative && p.pace_narrative !== "" && p.pace_narrative !== "nan");
     paceEl.textContent = pn ? pn.pace_narrative : "";
   } else { paceEl.textContent = ""; }
 
@@ -198,7 +198,8 @@ function renderEntries() {
     const tr = document.createElement("tr");
     if (scratched) tr.classList.add("scratched");
 
-    const style = entry.running_style || state.getPredStyle(rn, entry.horse_name) || "U";
+    let style = entry.running_style || state.getPredStyle(rn, entry.horse_name) || "U";
+    if (style === "nan" || style === "NaN" || style === "") style = "U";
     const odds = state.edits.overrides[key] ?? entry.dollar_odds ?? "";
     const jockey = state.edits.jockeys[key] ?? entry.jockey ?? "";
 
