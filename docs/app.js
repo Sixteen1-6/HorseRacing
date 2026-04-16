@@ -28,6 +28,13 @@ async function ghFetch(path, opts = {}) {
 }
 
 async function ghContents(path) {
+  // Try raw URL first (no size limit, no auth needed)
+  try {
+    const rawUrl = `https://raw.githubusercontent.com/${REPO}/${BRANCH}/${path}`;
+    const res = await fetch(rawUrl);
+    if (res.ok) return await res.text();
+  } catch (e) { /* fall through */ }
+  // Fallback to API
   const data = await ghFetch(`repos/${REPO}/contents/${path}?ref=${BRANCH}`);
   return atob(data.content);
 }
@@ -71,20 +78,8 @@ function parseCsvLine(line) {
 /* ── Card Discovery ── */
 
 async function discoverCards() {
-  try {
-    const listing = await ghFetch(`repos/${REPO}/contents/?ref=${BRANCH}`);
-    const csvFiles = listing.filter(f => f.name === "test_data.csv");
-    if (csvFiles.length > 0) {
-      state.cards = [{ name: "test_data.csv", path: "test_data.csv" }];
-    }
-    // Also check for predictions
-    try {
-      const predDir = await ghFetch(`repos/${REPO}/contents/predictions?ref=${BRANCH}`);
-      state.predictionFiles = predDir.filter(f => f.name.endsWith(".json"));
-    } catch (e) { state.predictionFiles = []; }
-  } catch (e) {
-    console.error("Card discovery failed:", e);
-  }
+  // Hardcode known card — avoids API rate limits
+  state.cards = [{ name: "KEE 2026-04-16", path: "test_data.csv" }];
 }
 
 /* ── Load Card ── */
