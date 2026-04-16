@@ -29,6 +29,12 @@ jobs:
           echo "CARD_DATE=${{ github.event.client_payload.card_date }}" >> $GITHUB_ENV
           echo "TRACK_CODE=${{ github.event.client_payload.track_code }}" >> $GITHUB_ENV
 
+      - name: Enrich entries with historical features
+        run: |
+          python enrich_entries.py \
+            --entries test_data.csv \
+            --history all_tracks_2014_2026.csv
+
       - name: Run prediction
         run: |
           python predict.py \
