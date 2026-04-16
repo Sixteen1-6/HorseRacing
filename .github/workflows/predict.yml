@@ -37,12 +37,21 @@ jobs:
       - name: Apply edits (scratches, odds, jockeys, added horses)
         run: python .github/scripts/apply_edits.py
 
-      - name: Run prediction
+      - name: Run Model A (with odds)
         run: |
           python predict.py \
             --input test_data.csv \
             --output race_predictions/all_race_predictions.csv \
-            --models-dir models/v4
+            --models-dir models/v4 \
+            --model with_odds
+
+      - name: Run Model B (no odds)
+        run: |
+          python predict.py \
+            --input test_data.csv \
+            --output race_predictions/no_odds_predictions.csv \
+            --models-dir models/v4 \
+            --model no_odds
 
       - name: Convert to JSON
         run: |
