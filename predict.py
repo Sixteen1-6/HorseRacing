@@ -1,5 +1,5 @@
 """
-Horse Racing Prediction — v4 Conditional Logit Model
+Horse Racing Prediction -v4 Conditional Logit Model
 =====================================================
 Loads the trained model and predicts race outcomes with Kelly sizing.
 
@@ -421,11 +421,11 @@ def pace_narrative(running_styles):
     if n_speed == 0:
         return "No confirmed speed. Tactical pace likely. Stalkers favored."
     if n_speed == 1:
-        return f"LONE SPEED — 1 front-runner vs {n_close} closers. Speed horse has major advantage."
+        return f"LONE SPEED -1 front-runner vs {n_close} closers. Speed horse has major advantage."
     if n_speed == 2:
-        return f"Moderate pace — 2 speed types. Pressers and stalkers favored."
+        return f"Moderate pace -2 speed types. Pressers and stalkers favored."
     if n_speed >= 3:
-        return f"HOT PACE — {n_speed} speed types will duel. Closers strongly advantaged."
+        return f"HOT PACE -{n_speed} speed types will duel. Closers strongly advantaged."
     return f"Mixed: {n_speed} speed, {n_close} closers, {n_unknown} unknown."
 
 
@@ -627,7 +627,7 @@ def main():
 
     # Print summary
     print(f"\n{'=' * 80}")
-    print("PREDICTION SUMMARY — v4 Conditional Logit")
+    print("PREDICTION SUMMARY -v4 Conditional Logit")
     print(f"{'=' * 80}")
 
     for race_id in unique_races:
