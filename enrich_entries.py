@@ -79,7 +79,9 @@ def enrich(entries_df, history_idx):
     # Carry forward career stats if missing from entries
     for col in ["num_past_starts", "num_past_wins", "num_past_seconds", "num_past_thirds", "win_rate"]:
         if col in history_idx.columns:
-            existing = pd.to_numeric(entries_df.get(col), errors="coerce")
+            if col not in entries_df.columns:
+                entries_df[col] = np.nan
+            existing = pd.to_numeric(entries_df[col], errors="coerce")
             missing = existing.isna()
             if missing.any():
                 entries_df.loc[missing, col] = entries_df.loc[missing, "horse_name"].map(
