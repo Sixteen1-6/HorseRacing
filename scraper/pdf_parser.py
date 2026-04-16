@@ -851,11 +851,11 @@ class ChartPDFParser:
             entry["start_pos"] = int(_start) if _start.isdigit() else ""
             entry.update(pos_cols)
             entry["age"] = age_default if age_default is not None else ""
-            # Winner gets exact sex from Winner line; others use condition-derived default.
-            if finish_pos == 1 and winner_sex:
-                entry["sex"] = winner_sex
-            else:
-                entry["sex"] = sex_from_conditions
+            # Sex: use condition-derived value (applies equally to all horses
+            # in restricted races). For open races, leave empty — the winner
+            # line tells us the winner's sex but not the others, and setting
+            # it only on the winner creates a misleading 1-per-race pattern.
+            entry["sex"] = sex_from_conditions
             entry.update(lr)
 
             for c in OUTPUT_COLUMNS:
