@@ -152,7 +152,7 @@ def clean_data(df):
         non_tb = df["breed"].notna() & (df["breed"] != "TB") & (df["breed"] != "")
         n_non_tb = non_tb.sum()
         if n_non_tb > 0:
-            df = df[~non_tb].copy()
+            df = df[~non_tb]
             print(f"  Dropped {n_non_tb:,} non-TB rows")
 
     # 2. Fix missing surface — GG defaults to Dirt (majority of their cards)
@@ -170,7 +170,7 @@ def clean_data(df):
         zero_dist = dist.isna() | (dist == 0)
         n_zero = zero_dist.sum()
         if n_zero > 0:
-            df = df[~zero_dist].copy()
+            df = df[~zero_dist]
             print(f"  Dropped {n_zero:,} rows with missing/zero distance")
 
     # 4. Fix sex: if only 1 horse in a race has sex, clear it
@@ -197,7 +197,7 @@ def clean_data(df):
         small = race_sizes < 2
         n_small = small.sum()
         if n_small > 0:
-            df = df[~small].copy()
+            df = df[~small]
             print(f"  Dropped {n_small:,} rows from races with <2 horses")
 
     print(f"  Cleaning: {before:,} -> {len(df):,} rows")
@@ -268,7 +268,8 @@ def compute_career_stats(df):
     df["_finish_num"] = pd.to_numeric(df["finish"], errors="coerce")
 
     # Sort by date so we can iterate chronologically
-    df = df.sort_values("_race_date_parsed", na_position="last").reset_index(drop=True)
+    df.sort_values("_race_date_parsed", na_position="last", inplace=True)
+    df.reset_index(drop=True, inplace=True)
 
     # Build per-horse running tallies
     # Track: {horse_name: [starts, wins, seconds, thirds]}
@@ -374,7 +375,8 @@ def compute_position_and_trip_features(df):
     if "num_horses_in_race" not in df.columns:
         df["num_horses_in_race"] = 8
 
-    df = df.sort_values("_race_date_parsed", na_position="last").reset_index(drop=True)
+    df.sort_values("_race_date_parsed", na_position="last", inplace=True)
+    df.reset_index(drop=True, inplace=True)
     n = len(df)
 
     # Pre-allocate output arrays
