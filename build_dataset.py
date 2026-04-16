@@ -143,6 +143,50 @@ def parse_race_dates(df):
     return df
 
 
+def clean_data(df):
+    """Fix known data quality issues from PDF parsing."""
+    before = len(df)
+
+    # 1. Drop non-TB breeds (QH, Arabian, etc. — different sport)
+    if "breed" in df.columns:
+        non_tb = df["breed"].notna() & (df["breed"] != "TB") & (df["breed"] != "")
+        n_non_tb = non_tb.sum()
+        if n_non_tb > 0:
+            df = df[~non_tb].copy()
+            print(f"  Dropped {n_non_tb:,} non-TB rows")
+
+    # 2. Fix missing surface — GG defaults to Dirt (majority of their cards)
+    if "surface" in df.columns:
+        missing_surf = df["surface"].isna() | (df["surface"] == "")
+        n_missing = missing_surf.sum()
+        if n_missing > 0:
+            df.loc[missing_surf, "surface"] = "D"
+            df.loc[missing_surf & (df["course"].isna() | (df["course"] == "")), "course"] = "Dirt"
+            print(f"  Filled {n_missing:,} missing surface values (defaulted to Dirt)")
+
+    # 3. Drop rows with distance=0 (unparseable distance text)
+    if "distance" in df.columns:
+        dist = pd.to_numeric(df["distance"], errors="coerce")
+        zero_dist = dist.isna() | (dist == 0)
+        n_zero = zero_dist.sum()
+        if n_zero > 0:
+            df = df[~zero_dist].copy()
+            print(f"  Dropped {n_zero:,} rows with missing/zero distance")
+
+    # 4. Drop races with fewer than 2 horses (can't rank)
+    race_keys = ["track_code", "race_date", "race_number"]
+    if all(c in df.columns for c in race_keys):
+        race_sizes = df.groupby(race_keys, observed=False)["horse_name"].transform("size")
+        small = race_sizes < 2
+        n_small = small.sum()
+        if n_small > 0:
+            df = df[~small].copy()
+            print(f"  Dropped {n_small:,} rows from races with <2 horses")
+
+    print(f"  Cleaning: {before:,} -> {len(df):,} rows")
+    return df
+
+
 def deduplicate(df):
     """Remove duplicate rows (same race, same horse)."""
     dedup_keys = ["track_code", "race_date", "race_number", "horse_name"]
@@ -673,9 +717,12 @@ def main():
     df = load_and_concat_csvs(input_paths)
     print(f"\nCombined: {len(df):,} rows, {len(df.columns)} columns")
 
-    # --- Step 2: Parse dates, deduplicate, filter ---
+    # --- Step 2: Parse dates, deduplicate, clean, filter ---
     df = parse_race_dates(df)
     df = deduplicate(df)
+
+    print("Cleaning data...")
+    df = clean_data(df)
 
     if args.start_date or args.end_date:
         df = filter_dates(df, args.start_date, args.end_date)
