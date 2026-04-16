@@ -87,8 +87,11 @@ async function discoverCards() {
 async function loadCard(path) {
   setStatus("running", "Loading...");
   try {
+    console.log("Loading card:", path);
     const csv = await ghContents(path);
+    console.log("CSV loaded, length:", csv.length, "first 100:", csv.substring(0, 100));
     const rows = parseCSV(csv);
+    console.log("Parsed rows:", rows.length);
     state.races = {};
     state.edits = { scratches: new Set(), overrides: {}, jockeys: {}, added: [] };
 
@@ -115,8 +118,9 @@ async function loadCard(path) {
     await loadPredictions();
     setStatus("done", "Loaded");
   } catch (e) {
-    setStatus("error", "Failed");
-    console.error(e);
+    setStatus("error", e.message);
+    console.error("loadCard error:", e);
+    document.getElementById("raceTitle").textContent = "Error: " + e.message;
   }
 }
 
