@@ -40,7 +40,7 @@ jobs:
           python predict.py \
             --input test_data.csv \
             --output race_predictions/all_race_predictions.csv \
-            --models-dir models
+            --models-dir models/v4
 
       - name: Convert to JSON
         run: |
