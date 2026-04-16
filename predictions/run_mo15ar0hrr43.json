@@ -2,7 +2,7 @@
   "metadata": {
     "track_code": "KEE",
     "card_date": "2026-04-16",
-    "generated_at": "2026-04-16T07:07:50.078882Z",
+    "generated_at": "2026-04-16T07:16:24.220411Z",
     "model_version": "v4",
     "num_races": 1
   },
@@ -19,10 +19,11 @@
           "odds": 0.6,
           "predicted_finish": 1,
           "model_probability": 0.3966,
-          "top3_probability": 0.8382,
+          "top3_probability": 0.8438,
           "market_probability": 0.625,
           "edge": 0.63,
           "value_bet": false,
+          "kelly_bet": 0.0,
           "ev_per_dollar": -0.762
         },
         {
@@ -33,10 +34,11 @@
           "odds": 4.0,
           "predicted_finish": 2,
           "model_probability": 0.1654,
-          "top3_probability": 0.5332,
+          "top3_probability": 0.5432,
           "market_probability": 0.2,
           "edge": 0.83,
           "value_bet": false,
+          "kelly_bet": 0.0,
           "ev_per_dollar": -0.338
         },
         {
@@ -47,10 +49,11 @@
           "odds": 4.5,
           "predicted_finish": 3,
           "model_probability": 0.1654,
-          "top3_probability": 0.521,
+          "top3_probability": 0.5342,
           "market_probability": 0.1818,
           "edge": 0.91,
           "value_bet": false,
+          "kelly_bet": 0.0,
           "ev_per_dollar": -0.255
         },
         {
@@ -61,10 +64,11 @@
           "odds": 8.0,
           "predicted_finish": 4,
           "model_probability": 0.096,
-          "top3_probability": 0.3674,
+          "top3_probability": 0.3644,
           "market_probability": 0.1111,
           "edge": 0.86,
           "value_bet": false,
+          "kelly_bet": 0.0,
           "ev_per_dollar": -0.232
         },
         {
@@ -75,10 +79,11 @@
           "odds": 12.0,
           "predicted_finish": 5,
           "model_probability": 0.0802,
-          "top3_probability": 0.3154,
+          "top3_probability": 0.2924,
           "market_probability": 0.0769,
           "edge": 1.04,
           "value_bet": false,
+          "kelly_bet": 0.0,
           "ev_per_dollar": -0.038
         },
         {
@@ -89,10 +94,11 @@
           "odds": 20.0,
           "predicted_finish": 6,
           "model_probability": 0.0587,
-          "top3_probability": 0.2552,
+          "top3_probability": 0.26,
           "market_probability": 0.0476,
           "edge": 1.23,
           "value_bet": true,
+          "kelly_bet": 29.1,
           "ev_per_dollar": 0.174
         },
         {
@@ -103,10 +109,11 @@
           "odds": 30.0,
           "predicted_finish": 7,
           "model_probability": 0.0376,
-          "top3_probability": 0.1696,
+          "top3_probability": 0.162,
           "market_probability": 0.0323,
           "edge": 1.17,
           "value_bet": true,
+          "kelly_bet": 13.85,
           "ev_per_dollar": 0.129
         }
       ]
