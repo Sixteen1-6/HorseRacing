@@ -23,14 +23,14 @@ Llamp / Lucy McGee / Poverty With Aview,"[np.int64(8), np.int64(2), np.int64(12)
 Lucy McGee / Llamp,"[np.int64(2), np.int64(8)]",0.01541,64.9,race_3,3,EXACTA
 Llamp / Lucy McGee,"[np.int64(8), np.int64(2)]",0.01477,67.7,race_3,3,EXACTA
 Lucy McGee / Poverty With Aview,"[np.int64(2), np.int64(12)]",0.01424,70.2,race_3,3,EXACTA
-Mo Work / Fracture / Mo Hair Sam,"[np.int64(3), np.int64(7), np.int64(1)]",0.02279,43.9,race_4,4,TRIFECTA
-Fracture / Mo Work / Mo Hair Sam,"[np.int64(7), np.int64(3), np.int64(1)]",0.02279,43.9,race_4,4,TRIFECTA
-Mo Work / Mo Hair Sam / Fracture,"[np.int64(3), np.int64(1), np.int64(7)]",0.01926,51.9,race_4,4,TRIFECTA
-Fracture / Mo Hair Sam / Mo Work,"[np.int64(7), np.int64(1), np.int64(3)]",0.01926,51.9,race_4,4,TRIFECTA
-Mo Work / Fracture / White Whale,"[np.int64(3), np.int64(7), np.int64(0)]",0.01797,55.6,race_4,4,TRIFECTA
-Mo Work / Fracture,"[np.int64(3), np.int64(7)]",0.08335,12.0,race_4,4,EXACTA
-Fracture / Mo Work,"[np.int64(7), np.int64(3)]",0.08335,12.0,race_4,4,EXACTA
-Mo Work / Mo Hair Sam,"[np.int64(3), np.int64(1)]",0.04987,20.1,race_4,4,EXACTA
+Fracture / Mo Work / Mo Hair Sam,"[np.int64(6), np.int64(3), np.int64(1)]",0.02759,36.3,race_4,4,TRIFECTA
+Mo Work / Fracture / Mo Hair Sam,"[np.int64(3), np.int64(6), np.int64(1)]",0.02759,36.3,race_4,4,TRIFECTA
+Fracture / Mo Hair Sam / Mo Work,"[np.int64(6), np.int64(1), np.int64(3)]",0.02296,43.6,race_4,4,TRIFECTA
+Mo Work / Mo Hair Sam / Fracture,"[np.int64(3), np.int64(1), np.int64(6)]",0.02296,43.6,race_4,4,TRIFECTA
+Fracture / Mo Work / White Whale,"[np.int64(6), np.int64(3), np.int64(0)]",0.0221,45.2,race_4,4,TRIFECTA
+Fracture / Mo Work,"[np.int64(6), np.int64(3)]",0.09192,10.9,race_4,4,EXACTA
+Mo Work / Fracture,"[np.int64(3), np.int64(6)]",0.09192,10.9,race_4,4,EXACTA
+Fracture / Mo Hair Sam,"[np.int64(6), np.int64(1)]",0.055,18.2,race_4,4,EXACTA
 Miranda Rights / Judge Davis / Legalize,"[np.int64(3), np.int64(8), np.int64(2)]",0.0135,74.1,race_5,5,TRIFECTA
 Judge Davis / Miranda Rights / Legalize,"[np.int64(8), np.int64(3), np.int64(2)]",0.0135,74.1,race_5,5,TRIFECTA
 Miranda Rights / Judge Davis / California Burrito,"[np.int64(3), np.int64(8), np.int64(9)]",0.01317,75.9,race_5,5,TRIFECTA
