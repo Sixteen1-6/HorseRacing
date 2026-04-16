@@ -22,12 +22,20 @@ jobs:
         run: pip install -r .github/scripts/requirements-predict.txt
 
       - name: Extract metadata
-        id: meta
         run: |
           echo "RUN_ID=${{ github.event.client_payload.run_id }}" >> $GITHUB_ENV
           echo "RACE_NUM=${{ github.event.client_payload.race_num }}" >> $GITHUB_ENV
           echo "CARD_DATE=${{ github.event.client_payload.card_date }}" >> $GITHUB_ENV
           echo "TRACK_CODE=${{ github.event.client_payload.track_code }}" >> $GITHUB_ENV
+
+      - name: Save dispatch payload
+        run: |
+          mkdir -p .dispatch
+          echo '${{ toJson(github.event.client_payload) }}' > .dispatch/payload.json
+          cat .dispatch/payload.json
+
+      - name: Apply edits (scratches, odds, jockeys, added horses)
+        run: python .github/scripts/apply_edits.py
 
       - name: Run prediction
         run: |

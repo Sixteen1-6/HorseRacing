@@ -360,32 +360,49 @@ function renderBets() {
 /* ── Run Model ── */
 
 async function runModel() {
-  setStatus("running", "Updating...");
+  if (!state.pat) { document.getElementById("patDialog").showModal(); return; }
+
+  const runId = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  setStatus("running", "Dispatching...");
+
   try {
-    // Re-apply predictions with current scratches/odds edits
-    // Predictions are already loaded — just re-render with edits applied
-    if (state.predictions) {
-      renderRaceTabs();
-      renderResults();
-      renderExotics();
-      renderBets();
-      setStatus("done", "Updated");
-    } else {
-      // Try loading predictions from repo
-      await loadPredictions();
-      if (state.predictions) {
-        renderRaceTabs();
-        renderResults();
-        renderExotics();
-        renderBets();
-        setStatus("done", "Loaded");
-      } else {
-        setStatus("error", "No predictions found");
-      }
+    const payload = {
+      run_id: runId,
+      track_code: "KEE",
+      card_date: "2026-04-16",
+      race_num: state.currentRace || "",
+      card_path: "test_data.csv",
+      edits: {
+        scratches: [...state.edits.scratches],
+        overrides: state.edits.overrides,
+        jockeys: state.edits.jockeys,
+        added: state.edits.added,
+      },
+    };
+
+    console.log("Dispatching with payload:", JSON.stringify(payload, null, 2));
+
+    const res = await fetch(`https://api.github.com/repos/${REPO}/dispatches`, {
+      method: "POST",
+      headers: {
+        Authorization: `token ${state.pat}`,
+        "Content-Type": "application/json",
+        Accept: "application/vnd.github.v3+json",
+      },
+      body: JSON.stringify({ event_type: "predict", client_payload: payload }),
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Dispatch failed: ${res.status} ${text}`);
     }
+
+    console.log("Dispatch sent, polling for results...");
+    setStatus("running", "Running...");
+    pollForResults(runId);
   } catch (e) {
-    setStatus("error", "Failed");
-    console.error(e);
+    setStatus("error", e.message);
+    console.error("runModel error:", e);
   }
 }
 
