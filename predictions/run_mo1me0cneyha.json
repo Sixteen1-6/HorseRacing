@@ -1,0 +1,107 @@
+{
+  "metadata": {
+    "track_code": "KEE",
+    "card_date": "2026-04-16",
+    "generated_at": "2026-04-16T15:15:03.969873Z",
+    "model_version": "v4",
+    "num_races": 1
+  },
+  "races": {
+    "race_1": {
+      "race_number": 1,
+      "num_horses": 6,
+      "horses": [
+        {
+          "rank": 1,
+          "horse_name": "Emirates Affair",
+          "jockey": "I Ortiz, Jr.",
+          "trainer": "R B Hess, Jr.",
+          "odds": 0.6,
+          "predicted_finish": 1,
+          "model_probability": 0.3698,
+          "top3_probability": 0.8292,
+          "market_probability": 0.625,
+          "edge": 0.59,
+          "value_bet": false,
+          "kelly_bet": 0.0,
+          "ev_per_dollar": -0.778
+        },
+        {
+          "rank": 2,
+          "horse_name": "Ask Amanda",
+          "jockey": "W A Rodriguez",
+          "trainer": "J Antonuik",
+          "odds": 2.0,
+          "predicted_finish": 2,
+          "model_probability": 0.2223,
+          "top3_probability": 0.666,
+          "market_probability": 0.3333,
+          "edge": 0.67,
+          "value_bet": false,
+          "kelly_bet": 0.0,
+          "ev_per_dollar": -0.555
+        },
+        {
+          "rank": 3,
+          "horse_name": "Devil of Paradis",
+          "jockey": "C Roman",
+          "trainer": "M Evans II",
+          "odds": 4.5,
+          "predicted_finish": 3,
+          "model_probability": 0.15,
+          "top3_probability": 0.529,
+          "market_probability": 0.1818,
+          "edge": 0.82,
+          "value_bet": false,
+          "kelly_bet": 0.0,
+          "ev_per_dollar": -0.325
+        },
+        {
+          "rank": 4,
+          "horse_name": "Coastline Hottie",
+          "jockey": "L Machado",
+          "trainer": "C W Axmaker",
+          "odds": 4.0,
+          "predicted_finish": 4,
+          "model_probability": 0.1454,
+          "top3_probability": 0.5002,
+          "market_probability": 0.2,
+          "edge": 0.73,
+          "value_bet": false,
+          "kelly_bet": 0.0,
+          "ev_per_dollar": -0.418
+        },
+        {
+          "rank": 5,
+          "horse_name": "So Far So Good",
+          "jockey": "W Antongeorgi III",
+          "trainer": "A Decker",
+          "odds": 12.0,
+          "predicted_finish": 5,
+          "model_probability": 0.0784,
+          "top3_probability": 0.3058,
+          "market_probability": 0.0769,
+          "edge": 1.02,
+          "value_bet": false,
+          "kelly_bet": 0.0,
+          "ev_per_dollar": -0.059
+        },
+        {
+          "rank": 6,
+          "horse_name": "Scoop",
+          "jockey": "A Calleja",
+          "trainer": "M Salas",
+          "odds": 30.0,
+          "predicted_finish": 6,
+          "model_probability": 0.0341,
+          "top3_probability": 0.1698,
+          "market_probability": 0.0323,
+          "edge": 1.06,
+          "value_bet": false,
+          "kelly_bet": 0.0,
+          "ev_per_dollar": 0.024
+        }
+      ]
+    }
+  }
+}
