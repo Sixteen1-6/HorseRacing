@@ -1,11 +1,13 @@
 """
-Horse Racing Prediction — LambdaRank Model
-===========================================
-Loads the trained LambdaRank model and predicts race outcomes.
+Horse Racing Prediction — v4 Conditional Logit Model
+=====================================================
+Loads the trained model and predicts race outcomes with Kelly sizing.
 
 Usage:
   python predict.py --input today_races.csv
   python predict.py --input today_races.csv --output predictions.csv
+  python predict.py --input today_races.csv --model with_odds
+  python predict.py --input today_races.csv --model no_odds
 
 Input CSV should have the same columns as the training data:
   horse_name, jockey, trainer, track_code, race_number, race_date,
@@ -314,15 +316,25 @@ def main():
     parser.add_argument('--output', default='race_predictions/all_race_predictions.csv',
                         help='Output CSV with predictions')
     parser.add_argument('--models-dir', default='models', help='Directory with model artifacts')
-    parser.add_argument('--edge', type=float, default=1.20, help='Edge threshold for value bets')
+    parser.add_argument('--model', default='with_odds', choices=['with_odds', 'no_odds'],
+                        help='Which model to use (default: with_odds)')
+    parser.add_argument('--edge', type=float, default=1.10, help='Edge threshold for value bets')
     args = parser.parse_args()
 
-    # Load model artifacts
-    model_path = os.path.join(args.models_dir, 'ranking_model.lgb')
-    calibrator_path = os.path.join(args.models_dir, 'ranking_calibrator.pkl')
-    features_path = os.path.join(args.models_dir, 'ranking_feature_names.pkl')
-    cat_path = os.path.join(args.models_dir, 'ranking_cat_features.pkl')
+    # Load model artifacts (v4 naming: ranking_{with_odds|no_odds}_{artifact})
+    suffix = args.model
+    model_path = os.path.join(args.models_dir, f'ranking_{suffix}_model.lgb')
+    calibrator_path = os.path.join(args.models_dir, f'ranking_{suffix}_calibrator.pkl')
+    features_path = os.path.join(args.models_dir, f'ranking_{suffix}_feature_names.pkl')
+    cat_path = os.path.join(args.models_dir, f'ranking_{suffix}_cat_features.pkl')
     jt_path = os.path.join(args.models_dir, 'ranking_jt_lookup.json')
+
+    # Fallback to old naming if v4 files not found
+    if not os.path.exists(model_path):
+        model_path = os.path.join(args.models_dir, 'ranking_model.lgb')
+        calibrator_path = os.path.join(args.models_dir, 'ranking_calibrator.pkl')
+        features_path = os.path.join(args.models_dir, 'ranking_feature_names.pkl')
+        cat_path = os.path.join(args.models_dir, 'ranking_cat_features.pkl')
 
     for path, name in [(model_path, 'Model'), (calibrator_path, 'Calibrator'),
                         (features_path, 'Features')]:
