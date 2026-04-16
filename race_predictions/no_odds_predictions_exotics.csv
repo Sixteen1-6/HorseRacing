@@ -15,18 +15,18 @@ Castle Pines / Perfect Mo / Ruiva,"[np.int64(11), np.int64(2), np.int64(0)]",0.0
 Castle Pines / Ruiva,"[np.int64(11), np.int64(0)]",0.01066,93.8,race_2,2,EXACTA
 Castle Pines / Perfect Mo,"[np.int64(11), np.int64(2)]",0.01066,93.8,race_2,2,EXACTA
 Castle Pines / Arctic Wolf,"[np.int64(11), np.int64(1)]",0.01066,93.8,race_2,2,EXACTA
-Lucy McGee / Llamp / Loriebeth,"[np.int64(2), np.int64(8), np.int64(14)]",0.00193,519.3,race_3,3,TRIFECTA
-Lucy McGee / Loriebeth / Llamp,"[np.int64(2), np.int64(14), np.int64(8)]",0.00191,523.4,race_3,3,TRIFECTA
-Lucy McGee / Llamp / Poverty With Aview,"[np.int64(2), np.int64(8), np.int64(12)]",0.00185,541.1,race_3,3,TRIFECTA
-Llamp / Lucy McGee / Loriebeth,"[np.int64(8), np.int64(2), np.int64(14)]",0.00184,542.1,race_3,3,TRIFECTA
-Lucy McGee / Poverty With Aview / Llamp,"[np.int64(2), np.int64(12), np.int64(8)]",0.00182,548.0,race_3,3,TRIFECTA
-Lucy McGee / Llamp,"[np.int64(2), np.int64(8)]",0.01543,64.8,race_3,3,EXACTA
-Llamp / Lucy McGee,"[np.int64(8), np.int64(2)]",0.01478,67.6,race_3,3,EXACTA
-Lucy McGee / Loriebeth,"[np.int64(2), np.int64(14)]",0.01452,68.9,race_3,3,EXACTA
+Lucy McGee / Llamp / Poverty With Aview,"[np.int64(2), np.int64(8), np.int64(12)]",0.00189,529.6,race_3,3,TRIFECTA
+Lucy McGee / Llamp / Loriebeth,"[np.int64(2), np.int64(8), np.int64(14)]",0.00189,529.6,race_3,3,TRIFECTA
+Lucy McGee / Poverty With Aview / Llamp,"[np.int64(2), np.int64(12), np.int64(8)]",0.00187,534.9,race_3,3,TRIFECTA
+Lucy McGee / Loriebeth / Llamp,"[np.int64(2), np.int64(14), np.int64(8)]",0.00187,534.9,race_3,3,TRIFECTA
+Llamp / Lucy McGee / Poverty With Aview,"[np.int64(8), np.int64(2), np.int64(12)]",0.00181,552.8,race_3,3,TRIFECTA
+Lucy McGee / Llamp,"[np.int64(2), np.int64(8)]",0.01541,64.9,race_3,3,EXACTA
+Llamp / Lucy McGee,"[np.int64(8), np.int64(2)]",0.01477,67.7,race_3,3,EXACTA
+Lucy McGee / Poverty With Aview,"[np.int64(2), np.int64(12)]",0.01424,70.2,race_3,3,EXACTA
 Mo Work / Fracture / Mo Hair Sam,"[np.int64(3), np.int64(7), np.int64(1)]",0.02279,43.9,race_4,4,TRIFECTA
 Fracture / Mo Work / Mo Hair Sam,"[np.int64(7), np.int64(3), np.int64(1)]",0.02279,43.9,race_4,4,TRIFECTA
-Fracture / Mo Hair Sam / Mo Work,"[np.int64(7), np.int64(1), np.int64(3)]",0.01926,51.9,race_4,4,TRIFECTA
 Mo Work / Mo Hair Sam / Fracture,"[np.int64(3), np.int64(1), np.int64(7)]",0.01926,51.9,race_4,4,TRIFECTA
+Fracture / Mo Hair Sam / Mo Work,"[np.int64(7), np.int64(1), np.int64(3)]",0.01926,51.9,race_4,4,TRIFECTA
 Mo Work / Fracture / White Whale,"[np.int64(3), np.int64(7), np.int64(0)]",0.01797,55.6,race_4,4,TRIFECTA
 Mo Work / Fracture,"[np.int64(3), np.int64(7)]",0.08335,12.0,race_4,4,EXACTA
 Fracture / Mo Work,"[np.int64(7), np.int64(3)]",0.08335,12.0,race_4,4,EXACTA
@@ -55,19 +55,19 @@ Copper Missile / Chapman's Peak / Faber,"[np.int64(2), np.int64(7), np.int64(6)]
 Chapman's Peak / Faber,"[np.int64(7), np.int64(6)]",0.03744,26.7,race_7,7,EXACTA
 Faber / Chapman's Peak,"[np.int64(6), np.int64(7)]",0.03644,27.4,race_7,7,EXACTA
 Chapman's Peak / Copper Missile,"[np.int64(7), np.int64(2)]",0.03353,29.8,race_7,7,EXACTA
-American Law / Clooney / Liar's Poker,"[np.int64(3), np.int64(4), np.int64(2)]",0.01017,98.3,race_8,8,TRIFECTA
-Clooney / American Law / Liar's Poker,"[np.int64(4), np.int64(3), np.int64(2)]",0.00989,101.1,race_8,8,TRIFECTA
-American Law / Liar's Poker / Clooney,"[np.int64(3), np.int64(2), np.int64(4)]",0.00985,101.6,race_8,8,TRIFECTA
-American Law / Clooney / Trusty Rusty,"[np.int64(3), np.int64(4), np.int64(0)]",0.00964,103.7,race_8,8,TRIFECTA
-Clooney / Liar's Poker / American Law,"[np.int64(4), np.int64(2), np.int64(3)]",0.00942,106.2,race_8,8,TRIFECTA
-American Law / Clooney,"[np.int64(3), np.int64(4)]",0.04293,23.3,race_8,8,EXACTA
-Clooney / American Law,"[np.int64(4), np.int64(3)]",0.04174,24.0,race_8,8,EXACTA
-American Law / Liar's Poker,"[np.int64(3), np.int64(2)]",0.03766,26.6,race_8,8,EXACTA
-Noises Off / Smokey Mandate / Tonka Warrior,"[np.int64(5), np.int64(1), np.int64(6)]",0.01694,59.0,race_9,9,TRIFECTA
-Noises Off / Tonka Warrior / Smokey Mandate,"[np.int64(5), np.int64(6), np.int64(1)]",0.01654,60.5,race_9,9,TRIFECTA
-Smokey Mandate / Noises Off / Tonka Warrior,"[np.int64(1), np.int64(5), np.int64(6)]",0.01651,60.6,race_9,9,TRIFECTA
-Smokey Mandate / Tonka Warrior / Noises Off,"[np.int64(1), np.int64(6), np.int64(5)]",0.01585,63.1,race_9,9,TRIFECTA
-Tonka Warrior / Noises Off / Smokey Mandate,"[np.int64(6), np.int64(5), np.int64(1)]",0.01556,64.3,race_9,9,TRIFECTA
-Noises Off / Smokey Mandate,"[np.int64(5), np.int64(1)]",0.05566,18.0,race_9,9,EXACTA
-Smokey Mandate / Noises Off,"[np.int64(1), np.int64(5)]",0.05426,18.4,race_9,9,EXACTA
-Noises Off / Tonka Warrior,"[np.int64(5), np.int64(6)]",0.05158,19.4,race_9,9,EXACTA
+American Law / Clooney / Liar's Poker,"[np.int64(3), np.int64(4), np.int64(2)]",0.01064,94.0,race_8,8,TRIFECTA
+Clooney / American Law / Liar's Poker,"[np.int64(4), np.int64(3), np.int64(2)]",0.01034,96.7,race_8,8,TRIFECTA
+American Law / Liar's Poker / Clooney,"[np.int64(3), np.int64(2), np.int64(4)]",0.01029,97.2,race_8,8,TRIFECTA
+Clooney / Liar's Poker / American Law,"[np.int64(4), np.int64(2), np.int64(3)]",0.00984,101.7,race_8,8,TRIFECTA
+Liar's Poker / American Law / Clooney,"[np.int64(2), np.int64(3), np.int64(4)]",0.00946,105.8,race_8,8,TRIFECTA
+American Law / Clooney,"[np.int64(3), np.int64(4)]",0.04413,22.7,race_8,8,EXACTA
+Clooney / American Law,"[np.int64(4), np.int64(3)]",0.04289,23.3,race_8,8,EXACTA
+American Law / Liar's Poker,"[np.int64(3), np.int64(2)]",0.03871,25.8,race_8,8,EXACTA
+Noises Off / Smokey Mandate / Tonka Warrior,"[np.int64(7), np.int64(1), np.int64(8)]",0.0091,109.9,race_9,9,TRIFECTA
+Smokey Mandate / Noises Off / Tonka Warrior,"[np.int64(1), np.int64(7), np.int64(8)]",0.00885,112.9,race_9,9,TRIFECTA
+Noises Off / Tonka Warrior / Smokey Mandate,"[np.int64(7), np.int64(8), np.int64(1)]",0.00882,113.3,race_9,9,TRIFECTA
+Smokey Mandate / Tonka Warrior / Noises Off,"[np.int64(1), np.int64(8), np.int64(7)]",0.00845,118.4,race_9,9,TRIFECTA
+Tonka Warrior / Noises Off / Smokey Mandate,"[np.int64(8), np.int64(7), np.int64(1)]",0.00812,123.1,race_9,9,TRIFECTA
+Noises Off / Smokey Mandate,"[np.int64(7), np.int64(1)]",0.04043,24.7,race_9,9,EXACTA
+Smokey Mandate / Noises Off,"[np.int64(1), np.int64(7)]",0.03932,25.4,race_9,9,EXACTA
+Noises Off / Tonka Warrior,"[np.int64(7), np.int64(8)]",0.03546,28.2,race_9,9,EXACTA

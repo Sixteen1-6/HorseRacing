@@ -63,11 +63,11 @@ Clooney / American Law / Awesome Ruta,"[np.int64(4), np.int64(3), np.int64(7)]",
 Clooney / Awesome Ruta,"[np.int64(4), np.int64(7)]",0.04701,21.3,race_8,8,EXACTA
 Awesome Ruta / Clooney,"[np.int64(7), np.int64(4)]",0.04156,24.1,race_8,8,EXACTA
 Clooney / Carolo Rapido,"[np.int64(4), np.int64(1)]",0.03338,30.0,race_8,8,EXACTA
-Anglophile / Sand Pipes / Tiztastic,"[np.int64(3), np.int64(7), np.int64(4)]",0.00846,118.1,race_9,9,TRIFECTA
-Anglophile / Sand Pipes / Smokey Mandate,"[np.int64(3), np.int64(7), np.int64(1)]",0.00824,121.3,race_9,9,TRIFECTA
-Anglophile / Tiztastic / Sand Pipes,"[np.int64(3), np.int64(4), np.int64(7)]",0.00822,121.7,race_9,9,TRIFECTA
-Anglophile / Smokey Mandate / Sand Pipes,"[np.int64(3), np.int64(1), np.int64(7)]",0.00796,125.6,race_9,9,TRIFECTA
-Sand Pipes / Anglophile / Tiztastic,"[np.int64(7), np.int64(3), np.int64(4)]",0.0072,138.8,race_9,9,TRIFECTA
-Anglophile / Sand Pipes,"[np.int64(3), np.int64(7)]",0.04308,23.2,race_9,9,EXACTA
-Anglophile / Tiztastic,"[np.int64(3), np.int64(4)]",0.03741,26.7,race_9,9,EXACTA
-Sand Pipes / Anglophile,"[np.int64(7), np.int64(3)]",0.03665,27.3,race_9,9,EXACTA
+Common Defense / Event Detail / Anglophile,"[np.int64(2), np.int64(0), np.int64(4)]",0.00568,175.9,race_9,9,TRIFECTA
+Common Defense / Anglophile / Event Detail,"[np.int64(2), np.int64(4), np.int64(0)]",0.00568,175.9,race_9,9,TRIFECTA
+Event Detail / Common Defense / Anglophile,"[np.int64(0), np.int64(2), np.int64(4)]",0.00537,186.3,race_9,9,TRIFECTA
+Anglophile / Common Defense / Event Detail,"[np.int64(4), np.int64(2), np.int64(0)]",0.00537,186.3,race_9,9,TRIFECTA
+Event Detail / Anglophile / Common Defense,"[np.int64(0), np.int64(4), np.int64(2)]",0.00521,191.9,race_9,9,TRIFECTA
+Common Defense / Event Detail,"[np.int64(2), np.int64(0)]",0.0288,34.7,race_9,9,EXACTA
+Common Defense / Anglophile,"[np.int64(2), np.int64(4)]",0.0288,34.7,race_9,9,EXACTA
+Event Detail / Common Defense,"[np.int64(0), np.int64(2)]",0.02719,36.8,race_9,9,EXACTA
