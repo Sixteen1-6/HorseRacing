@@ -1,12 +1,12 @@
 combo,indices,probability,fair_odds,race_id,race_number,type
-Emirates Affair / Devil of Paradis / Coastline Hottie,"[np.int64(0), np.int64(2), np.int64(5)]",0.04385,22.8,race_1,1,TRIFECTA
-Devil of Paradis / Emirates Affair / Coastline Hottie,"[np.int64(2), np.int64(0), np.int64(5)]",0.04333,23.1,race_1,1,TRIFECTA
-Emirates Affair / Coastline Hottie / Devil of Paradis,"[np.int64(0), np.int64(5), np.int64(2)]",0.03281,30.5,race_1,1,TRIFECTA
-Devil of Paradis / Coastline Hottie / Emirates Affair,"[np.int64(2), np.int64(5), np.int64(0)]",0.03211,31.1,race_1,1,TRIFECTA
-Emirates Affair / Devil of Paradis / Sunset Harbour,"[np.int64(0), np.int64(2), np.int64(3)]",0.02937,34.0,race_1,1,TRIFECTA
-Emirates Affair / Devil of Paradis,"[np.int64(0), np.int64(2)]",0.13013,7.7,race_1,1,EXACTA
-Devil of Paradis / Emirates Affair,"[np.int64(2), np.int64(0)]",0.12859,7.8,race_1,1,EXACTA
-Emirates Affair / Coastline Hottie,"[np.int64(0), np.int64(5)]",0.06511,15.4,race_1,1,EXACTA
+Emirates Affair / Coastline Hottie / Devil of Paradis,"[np.int64(0), np.int64(5), np.int64(2)]",0.03438,29.1,race_1,1,TRIFECTA
+Emirates Affair / Devil of Paradis / Coastline Hottie,"[np.int64(0), np.int64(2), np.int64(5)]",0.03438,29.1,race_1,1,TRIFECTA
+Coastline Hottie / Emirates Affair / Devil of Paradis,"[np.int64(5), np.int64(0), np.int64(2)]",0.02308,43.3,race_1,1,TRIFECTA
+Devil of Paradis / Emirates Affair / Coastline Hottie,"[np.int64(2), np.int64(0), np.int64(5)]",0.02308,43.3,race_1,1,TRIFECTA
+Emirates Affair / Coastline Hottie / Sunset Harbour,"[np.int64(0), np.int64(5), np.int64(3)]",0.02213,45.2,race_1,1,TRIFECTA
+Emirates Affair / Devil of Paradis,"[np.int64(0), np.int64(2)]",0.10084,9.9,race_1,1,EXACTA
+Emirates Affair / Coastline Hottie,"[np.int64(0), np.int64(5)]",0.10084,9.9,race_1,1,EXACTA
+Coastline Hottie / Emirates Affair,"[np.int64(5), np.int64(0)]",0.06768,14.8,race_1,1,EXACTA
 Ruiva / Arctic Wolf / Castle Pines,"[np.int64(0), np.int64(1), np.int64(11)]",0.00514,194.5,race_2,2,TRIFECTA
 Ruiva / Castle Pines / Arctic Wolf,"[np.int64(0), np.int64(11), np.int64(1)]",0.00498,200.8,race_2,2,TRIFECTA
 Arctic Wolf / Ruiva / Castle Pines,"[np.int64(1), np.int64(0), np.int64(11)]",0.00442,226.5,race_2,2,TRIFECTA
