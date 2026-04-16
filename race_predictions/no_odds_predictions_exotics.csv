@@ -25,8 +25,8 @@ Llamp / Lucy McGee,"[np.int64(8), np.int64(2)]",0.01463,68.4,race_3,3,EXACTA
 Lucy McGee / Loriebeth,"[np.int64(2), np.int64(14)]",0.01455,68.7,race_3,3,EXACTA
 Mo Work / Fracture / Mo Hair Sam,"[np.int64(3), np.int64(7), np.int64(1)]",0.02279,43.9,race_4,4,TRIFECTA
 Fracture / Mo Work / Mo Hair Sam,"[np.int64(7), np.int64(3), np.int64(1)]",0.02279,43.9,race_4,4,TRIFECTA
-Fracture / Mo Hair Sam / Mo Work,"[np.int64(7), np.int64(1), np.int64(3)]",0.01926,51.9,race_4,4,TRIFECTA
 Mo Work / Mo Hair Sam / Fracture,"[np.int64(3), np.int64(1), np.int64(7)]",0.01926,51.9,race_4,4,TRIFECTA
+Fracture / Mo Hair Sam / Mo Work,"[np.int64(7), np.int64(1), np.int64(3)]",0.01926,51.9,race_4,4,TRIFECTA
 Mo Work / Fracture / White Whale,"[np.int64(3), np.int64(7), np.int64(0)]",0.01797,55.6,race_4,4,TRIFECTA
 Mo Work / Fracture,"[np.int64(3), np.int64(7)]",0.08335,12.0,race_4,4,EXACTA
 Fracture / Mo Work,"[np.int64(7), np.int64(3)]",0.08335,12.0,race_4,4,EXACTA
