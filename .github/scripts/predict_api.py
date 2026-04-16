@@ -39,6 +39,7 @@ def csv_to_json(csv_path, track_code, card_date, race_num=None):
                 'market_probability': round(float(row.get('implied_prob', 0)), 4) if pd.notna(row.get('implied_prob')) else None,
                 'edge': round(float(row.get('edge', 0)), 4) if pd.notna(row.get('edge')) else None,
                 'value_bet': row.get('value_bet', '') == 'YES',
+                'kelly_bet': round(float(row.get('kelly_bet', 0)), 2) if pd.notna(row.get('kelly_bet')) else 0,
                 'ev_per_dollar': round(float(row.get('ev_per_dollar', 0)), 3) if pd.notna(row.get('ev_per_dollar')) else None,
             }
             horses.append(horse)
