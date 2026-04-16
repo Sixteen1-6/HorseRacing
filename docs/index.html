@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SharpLine Racing</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <h1>SharpLine Racing</h1>
+      <span class="version">v4 Conditional Logit</span>
+    </div>
+    <div class="controls">
+      <select id="datePicker"></select>
+      <span id="status" class="status idle">Idle</span>
+    </div>
+  </header>
+
+  <nav id="raceTabs" class="race-tabs"></nav>
+
+  <main>
+    <section id="raceHeader" class="race-header">
+      <h2 id="raceTitle">Select a race</h2>
+      <div id="raceMeta" class="race-meta"></div>
+      <div id="paceNarrative" class="pace-narrative"></div>
+    </section>
+
+    <section class="entries-section">
+      <table id="entriesTable" class="entries-table">
+        <thead>
+          <tr>
+            <th class="col-scratch">SCR</th>
+            <th class="col-pp">PP</th>
+            <th class="col-horse">Horse</th>
+            <th class="col-jockey">Jockey</th>
+            <th class="col-trainer">Trainer</th>
+            <th class="col-style">Style</th>
+            <th class="col-odds">Odds</th>
+          </tr>
+        </thead>
+        <tbody id="entriesBody"></tbody>
+      </table>
+
+      <div class="action-buttons">
+        <button id="btnAddHorse" class="btn secondary">+ Add Horse</button>
+        <button id="btnRunModel" class="btn primary">Run Model</button>
+      </div>
+    </section>
+
+    <section id="resultsSection" class="results-section hidden">
+      <div class="section-header">
+        <h3>Predictions</h3>
+        <span id="raceSignal" class="signal"></span>
+      </div>
+      <table class="results-table">
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Horse</th>
+            <th>Win%</th>
+            <th>Top3%</th>
+            <th>Odds</th>
+            <th>Edge</th>
+            <th>Kelly</th>
+          </tr>
+        </thead>
+        <tbody id="resultsBody"></tbody>
+      </table>
+    </section>
+
+    <section id="exoticsSection" class="exotics-section hidden">
+      <h3>Exotic Bets</h3>
+      <div class="exotic-grid">
+        <div class="exotic-card" id="exactaCard">
+          <h4>Top Exactas</h4>
+          <div id="exactaList"></div>
+        </div>
+        <div class="exotic-card" id="trifectaCard">
+          <h4>Top Trifectas</h4>
+          <div id="trifectaList"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="betsSection" class="bets-section hidden">
+      <h3>Value Bets</h3>
+      <div id="betsList"></div>
+      <div id="betsTotal" class="bets-total"></div>
+    </section>
+  </main>
+
+  <!-- Add Horse Modal -->
+  <dialog id="addHorseDialog">
+    <h3>Add Horse</h3>
+    <label>Name <input id="addName" type="text"></label>
+    <label>Jockey <input id="addJockey" type="text"></label>
+    <label>Trainer <input id="addTrainer" type="text"></label>
+    <label>PP <input id="addPP" type="number" min="1"></label>
+    <label>M/L Odds <input id="addOdds" type="number" min="1" step="0.5"></label>
+    <div class="dialog-actions">
+      <button class="btn secondary" id="addCancel">Cancel</button>
+      <button class="btn primary" id="addConfirm">Add</button>
+    </div>
+  </dialog>
+
+  <!-- PAT Dialog -->
+  <dialog id="patDialog">
+    <h3>GitHub Token</h3>
+    <p>Enter a personal access token with <code>repo</code> scope to trigger predictions.</p>
+    <input id="patInput" type="password" placeholder="ghp_...">
+    <div class="dialog-actions">
+      <button class="btn secondary" id="patCancel">Cancel</button>
+      <button class="btn primary" id="patSave">Save</button>
+    </div>
+  </dialog>
+
+  <footer>
+    <a href="#" id="resetToken">Reset Token</a>
+    <a href="#" id="reloadCard">Reload Card</a>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,134 @@
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #1c2333;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-dim: #8b949e;
+  --accent: #58a6ff;
+  --green: #3fb950;
+  --red: #f85149;
+  --yellow: #d29922;
+  --orange: #db6d28;
+  --purple: #bc8cff;
+  --radius: 8px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* Header */
+header { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg); z-index: 100; }
+.brand h1 { font-size: 1.4rem; font-weight: 700; }
+.version { font-size: 0.75rem; color: var(--accent); background: rgba(88,166,255,0.1); padding: 2px 8px; border-radius: 12px; margin-left: 8px; }
+.controls { display: flex; align-items: center; gap: 12px; }
+select { background: var(--surface); color: var(--text); border: 1px solid var(--border); padding: 6px 12px; border-radius: var(--radius); font-size: 0.85rem; }
+
+/* Status */
+.status { font-size: 0.75rem; padding: 4px 12px; border-radius: 12px; font-weight: 600; text-transform: uppercase; }
+.status.idle { background: var(--surface2); color: var(--text-dim); }
+.status.running { background: rgba(210,153,34,0.15); color: var(--yellow); animation: pulse 1.5s infinite; }
+.status.done { background: rgba(63,185,80,0.15); color: var(--green); }
+.status.error { background: rgba(248,81,73,0.15); color: var(--red); }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+/* Race Tabs */
+.race-tabs { display: flex; gap: 4px; padding: 8px 24px; border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; position: sticky; top: 57px; background: var(--bg); z-index: 99; }
+.race-tabs::-webkit-scrollbar { display: none; }
+.race-tab { padding: 8px 16px; border-radius: var(--radius); cursor: pointer; font-size: 0.85rem; font-weight: 600; color: var(--text-dim); background: transparent; border: 1px solid transparent; transition: all 0.2s; white-space: nowrap; }
+.race-tab:hover { background: var(--surface); }
+.race-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.race-tab.has-edge { border-color: var(--green); }
+.race-tab.has-edge::after { content: ''; display: inline-block; width: 6px; height: 6px; background: var(--green); border-radius: 50%; margin-left: 6px; vertical-align: middle; }
+
+/* Main */
+main { max-width: 900px; margin: 0 auto; padding: 24px; }
+
+/* Race Header */
+.race-header { margin-bottom: 20px; }
+.race-header h2 { font-size: 1.2rem; margin-bottom: 4px; }
+.race-meta { font-size: 0.8rem; color: var(--text-dim); }
+.pace-narrative { margin-top: 8px; padding: 8px 12px; background: var(--surface2); border-left: 3px solid var(--yellow); border-radius: 0 var(--radius) var(--radius) 0; font-size: 0.85rem; color: var(--yellow); }
+.pace-narrative:empty { display: none; }
+
+/* Entries Table */
+.entries-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-bottom: 16px; }
+.entries-table th { text-align: left; padding: 8px 12px; color: var(--text-dim); font-size: 0.75rem; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+.entries-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.entries-table tr.scratched { opacity: 0.35; text-decoration: line-through; }
+.entries-table tr:hover { background: var(--surface); }
+.col-scratch { width: 40px; text-align: center; }
+.col-pp { width: 40px; text-align: center; }
+.col-style { width: 50px; text-align: center; }
+.col-odds { width: 80px; }
+.odds-input { width: 60px; background: var(--surface2); color: var(--text); border: 1px solid var(--border); padding: 4px 8px; border-radius: 4px; text-align: center; font-size: 0.85rem; }
+.odds-input:focus { border-color: var(--accent); outline: none; }
+.jockey-input { width: 120px; background: transparent; color: var(--text); border: none; border-bottom: 1px dashed var(--border); padding: 2px 4px; font-size: 0.85rem; }
+.jockey-input:focus { border-color: var(--accent); outline: none; }
+
+/* Style badges */
+.style-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 700; }
+.style-E { background: rgba(248,81,73,0.2); color: var(--red); }
+.style-P { background: rgba(219,109,40,0.2); color: var(--orange); }
+.style-S { background: rgba(88,166,255,0.2); color: var(--accent); }
+.style-C { background: rgba(188,140,255,0.2); color: var(--purple); }
+.style-U { background: var(--surface2); color: var(--text-dim); }
+
+/* Buttons */
+.action-buttons { display: flex; gap: 8px; margin-bottom: 24px; }
+.btn { padding: 10px 20px; border-radius: var(--radius); font-size: 0.85rem; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; }
+.btn.primary { background: var(--accent); color: #fff; }
+.btn.primary:hover { background: #79c0ff; }
+.btn.secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+.btn.secondary:hover { background: var(--surface2); }
+
+/* Results */
+.results-section { margin-bottom: 24px; }
+.section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.signal { padding: 4px 12px; border-radius: 12px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+.signal.edge { background: rgba(63,185,80,0.15); color: var(--green); }
+.signal.pass { background: var(--surface2); color: var(--text-dim); }
+.results-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.results-table th { text-align: left; padding: 8px 12px; color: var(--text-dim); font-size: 0.75rem; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+.results-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+.results-table tr.value-bet { background: rgba(63,185,80,0.05); }
+.results-table tr.value-bet td:first-child { border-left: 3px solid var(--green); }
+.edge-tag { background: rgba(63,185,80,0.2); color: var(--green); padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; }
+
+/* Exotics */
+.exotics-section { margin-bottom: 24px; }
+.exotic-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.exotic-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+.exotic-card h4 { font-size: 0.85rem; color: var(--accent); margin-bottom: 8px; }
+.exotic-combo { display: flex; justify-content: space-between; padding: 4px 0; font-size: 0.8rem; border-bottom: 1px solid var(--border); }
+.exotic-combo:last-child { border-bottom: none; }
+.exotic-fair { color: var(--text-dim); }
+
+/* Bets */
+.bets-section { margin-bottom: 24px; }
+.bet-card { background: var(--surface); border: 1px solid var(--green); border-radius: var(--radius); padding: 12px 16px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+.bet-horse { font-weight: 600; }
+.bet-details { font-size: 0.8rem; color: var(--text-dim); }
+.bet-amount { font-size: 1.1rem; font-weight: 700; color: var(--green); }
+.bets-total { text-align: right; font-size: 0.9rem; color: var(--text-dim); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+
+/* Dialog */
+dialog { background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; max-width: 400px; width: 90%; }
+dialog::backdrop { background: rgba(0,0,0,0.6); }
+dialog label { display: block; margin-bottom: 12px; font-size: 0.85rem; color: var(--text-dim); }
+dialog input { display: block; width: 100%; margin-top: 4px; padding: 8px; background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 4px; }
+dialog input:focus { border-color: var(--accent); outline: none; }
+.dialog-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+
+/* Footer */
+footer { text-align: center; padding: 16px; font-size: 0.75rem; }
+footer a { color: var(--text-dim); margin: 0 12px; text-decoration: none; }
+footer a:hover { color: var(--accent); }
+
+.hidden { display: none !important; }
+
+@media (max-width: 640px) {
+  .exotic-grid { grid-template-columns: 1fr; }
+  header { flex-direction: column; gap: 8px; }
+  main { padding: 16px; }
+}
