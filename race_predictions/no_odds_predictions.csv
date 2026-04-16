@@ -1,82 +1,88 @@
 race_id,race_number,horse_name,original_horse_name,jockey,trainer,predicted_rank,predicted_finish,win_probability,top3_probability,score,dollar_odds,odds,running_style,pace_narrative,confidence,implied_prob,edge,value_bet,ev_per_dollar,kelly_bet
-race_1,1,Emirates Affair,Emirates Affair,"I Ortiz, Jr.","R B Hess, Jr.",1,1,0.2071,0.5946,-0.9728,0.6,0.6,P,HOT PACE -5 speed types will duel. Closers strongly advantaged.,HIGH,0.625,0.33,,-0.876,0.0
-race_1,1,Ask Amanda,Ask Amanda,W A Rodriguez,J Antonuik,2,2,0.2001,0.568,-1.0303,20.0,20.0,S,,HIGH,0.0476,4.2,YES,3.003,300.0
-race_1,1,Sunset Harbour,Sunset Harbour,M Gutierrez,C A David,3,3,0.1645,0.509,-1.2269,8.0,8.0,P,,HIGH,0.1111,1.48,YES,0.316,150.19
-race_1,1,Coastline Hottie,Coastline Hottie,L Machado,C W Axmaker,4,4,0.1515,0.4486,-1.4129,4.0,4.0,P,,HIGH,0.2,0.76,,-0.394,0.0
-race_1,1,So Far So Good,So Far So Good,W Antongeorgi III,A Decker,5,5,0.1223,0.3828,-1.5778,12.0,12.0,P,,HIGH,0.0769,1.59,YES,0.467,122.85
-race_1,1,Devil of Paradis,Devil of Paradis,C Roman,M Evans II,6,6,0.0804,0.2494,-2.0198,4.5,4.5,nan,,HIGH,0.1818,0.44,,-0.638,0.0
-race_1,1,Scoop,Scoop,A Calleja,M Salas,7,7,0.0741,0.2476,-2.0767,30.0,30.0,P,,HIGH,0.0323,2.3,YES,1.222,108.04
-race_2,2,Castle Pines,Castle Pines,A Fresu,D F O'Neill,1,1,0.1172,0.3284,-1.6874,6.0,6.0,C,,HIGH,0.1429,0.82,,-0.297,0.0
-race_2,2,Super Saiyajin,Super Saiyajin,G Corrales,S Donjuan,2,2,0.0803,0.2452,-2.0182,20.0,20.0,nan,,HIGH,0.0476,1.69,YES,0.605,85.66
-race_2,2,Blessed Flyer,Blessed Flyer,S Gonzalez,M Douaihy,3,3,0.0803,0.2464,-2.0182,20.0,20.0,nan,,HIGH,0.0476,1.69,YES,0.605,85.66
-race_2,2,Sing for Mo Money,Sing for Mo Money,A Achard,J Ennis,4,4,0.0803,0.2472,-2.0182,12.0,12.0,nan,,HIGH,0.0769,1.04,,-0.037,0.0
-race_2,2,Paper Run,Paper Run,W A Rodriguez,W A Ward,5,5,0.0803,0.2526,-2.0182,8.0,8.0,nan,,HIGH,0.1111,0.72,,-0.358,0.0
-race_2,2,Trim Castle,Trim Castle,E Morales,J Ennis,6,6,0.0803,0.2452,-2.0182,15.0,15.0,nan,,HIGH,0.0625,1.28,YES,0.204,47.34
-race_2,2,Mr Gerson,Mr Gerson,A Calleja,I Acevedo,7,7,0.0803,0.2398,-2.0182,20.0,20.0,nan,,HIGH,0.0476,1.69,YES,0.605,85.66
-race_2,2,Grandes Suenos,Grandes Suenos,L Saez,R Hernandez,8,8,0.0803,0.2326,-2.0182,10.0,10.0,nan,,HIGH,0.0909,0.88,,-0.197,0.0
-race_2,2,American Pope,American Pope,D Sheehy,P McEntee,9,9,0.0803,0.2398,-2.0182,30.0,30.0,nan,,HIGH,0.0323,2.49,YES,1.408,123.98
-race_2,2,Arctic Wolf,Arctic Wolf,T Gaffalione,P Antonacci,10,10,0.0803,0.2358,-2.0198,4.5,4.5,nan,,HIGH,0.1818,0.44,,-0.639,0.0
-race_2,2,Perfect Mo,Perfect Mo,F De La Cruz,E N Foster,11,11,0.0803,0.252,-2.0198,15.0,15.0,nan,,HIGH,0.0625,1.28,YES,0.204,47.34
-race_2,2,Ruiva,Ruiva,"I Ortiz, Jr.",W A Ward,12,12,0.0803,0.235,-2.0198,1.6,1.6,nan,No confirmed speed. Tactical pace likely. Stalkers favored.,HIGH,0.3846,0.21,,-0.872,0.0
-race_3,3,Lucy McGee,Lucy McGee,L Saez,V H Oliver,1,1,0.1836,0.5228,-0.9362,4.5,4.5,P,,HIGH,0.1818,1.01,,-0.174,0.0
-race_3,3,Llamp,Llamp,B Curtis,E Kenneally,2,2,0.1641,0.4682,-1.0393,15.0,15.0,E,,HIGH,0.0625,2.63,YES,1.461,270.86
-race_3,3,One Happy Island,One Happy Island,A Achard,M Kordenbrock,3,3,0.1461,0.412,-1.2775,18.0,18.0,S,,HIGH,0.0526,2.78,YES,1.631,246.78
-race_3,3,Aurora Sky,Aurora Sky,T Gaffalione,J Sharp,4,4,0.113,0.3374,-1.5142,3.0,3.0,C,,HIGH,0.25,0.45,,-0.661,0.0
-race_3,3,Conquering Marin,Conquering Marin,"I Ortiz, Jr.",B P Walsh,5,5,0.069,0.2174,-2.0182,3.5,3.5,nan,,HIGH,0.2222,0.31,,-0.758,0.0
-race_3,3,Red Beach,Red Beach,J Castellano,G D Sacco,6,6,0.069,0.2182,-2.0182,23.0,23.0,nan,,HIGH,0.0417,1.66,YES,0.588,71.38
-race_3,3,Headspin,Headspin,J Alvarado,W I Mott,7,7,0.069,0.209,-2.0182,2.5,2.5,nan,,HIGH,0.2857,0.24,,-0.827,0.0
-race_3,3,Marcheline,Marcheline,J R Velazquez,V H Oliver,8,8,0.069,0.211,-2.0182,18.0,18.0,nan,,HIGH,0.0526,1.31,YES,0.243,43.28
-race_3,3,Crescent Sky,Crescent Sky,C J Lanerie,A G Cohn,9,9,0.0586,0.2054,-2.1174,33.0,33.0,U,HOT PACE -3 speed types will duel. Closers strongly advantaged.,HIGH,0.0294,1.99,YES,0.933,75.08
-race_3,3,Victor Valley,Victor Valley,A Calleja,I Acevedo,10,10,0.0586,0.1986,-2.1583,28.0,28.0,P,,HIGH,0.0345,1.7,YES,0.64,62.35
-race_4,4,Mo Work,Mo Work,L Saez,G R Arnold II,1,1,0.2657,0.7358,0.2404,4.0,4.0,E,,HIGH,0.2,1.33,YES,0.063,205.33
-race_4,4,Fracture,Fracture,G Saez,D Leitch,2,2,0.2657,0.7124,0.2015,15.0,15.0,P,,HIGH,0.0625,4.25,YES,2.986,300.0
-race_4,4,Mo Hair Sam,Mo Hair Sam,F De La Cruz,J A Hancock,3,3,0.1409,0.44,-0.5965,20.0,20.0,S,,HIGH,0.0476,2.96,YES,1.819,244.93
-race_4,4,White Whale,White Whale,A Concepcion,M A Tomlinson,4,4,0.1051,0.3368,-0.9013,6.0,6.0,P,HOT PACE -3 speed types will duel. Closers strongly advantaged.,HIGH,0.1429,0.74,,-0.369,0.0
-race_4,4,Shangrala Road,Shangrala Road,"I Ortiz, Jr.",B H Cox,5,5,0.0832,0.287,-1.0653,1.2,1.2,S,,HIGH,0.4545,0.18,,-0.9,0.0
-race_4,4,Attersee,Attersee,T Gaffalione,N W Casse,6,6,0.0623,0.2144,-1.3574,8.0,8.0,S,,HIGH,0.1111,0.56,,-0.502,0.0
-race_4,4,Bite and Strike,Bite and Strike,J Alvarado,W I Mott,7,7,0.0385,0.159,-1.8001,5.0,5.0,nan,,HIGH,0.1667,0.23,,-0.807,0.0
-race_4,4,La Houligan,La Houligan,J L Ortiz,G Compton,8,8,0.0385,0.1146,-2.0182,10.0,10.0,nan,,HIGH,0.0909,0.42,,-0.615,0.0
-race_5,5,Judge Davis,Judge Davis,F Prat,M J Maker,1,1,0.323,0.812,0.0745,5.0,5.0,S,,HIGH,0.1667,1.94,YES,0.615,300.0
-race_5,5,Miranda Rights,Miranda Rights,V Cheminaud,M Nihei,2,2,0.2827,0.7952,-0.0155,6.0,6.0,P,,HIGH,0.1429,1.98,YES,0.696,300.0
-race_5,5,California Burrito,California Burrito,L Saez,"T Drury, Jr.",3,3,0.1499,0.4612,-0.9001,20.0,20.0,P,,HIGH,0.0476,3.15,YES,1.999,268.6
-race_5,5,Maycocks Bay,Maycocks Bay,"B J Hernandez, Jr.",M Stidham,4,4,0.0558,0.2146,-1.7933,3.5,3.5,P,HOT PACE -3 speed types will duel. Closers strongly advantaged.,HIGH,0.2222,0.25,,-0.805,0.0
-race_5,5,In a Jam,In a Jam,E Morales,J G Cook,5,5,0.0558,0.2148,-1.8335,37.0,37.0,nan,,HIGH,0.0263,2.12,YES,1.066,75.81
-race_5,5,Just a Touch,Just a Touch,"I Ortiz, Jr.",B H Cox,6,6,0.0442,0.1684,-2.05,1.2,1.2,nan,,HIGH,0.4545,0.1,,-0.947,0.0
-race_5,5,Big to Do,Big to Do,W Antongeorgi III,T S Wismer,7,7,0.0442,0.1638,-2.05,30.0,30.0,nan,,HIGH,0.0323,1.37,YES,0.327,30.95
-race_5,5,Stars and Strides,Stars and Strides,J Alvarado,W I Mott,8,8,0.0442,0.17,-2.05,4.5,4.5,nan,,HIGH,0.1818,0.24,,-0.801,0.0
-race_6,6,Metfardeh,Metfardeh,F Prat,T A Pletcher,1,1,0.234,0.6614,-0.8179,4.5,4.5,S,,HIGH,0.1818,1.29,YES,0.053,159.32
-race_6,6,Quinn's Promise,Quinn's Promise,C J Lanerie,D L Romans,2,2,0.1801,0.5256,-1.1236,20.0,20.0,S,,HIGH,0.0476,3.78,YES,2.603,300.0
-race_6,6,Oraia,Oraia,"B J Hernandez, Jr.",W D Cowans,3,3,0.154,0.4728,-1.2793,10.0,10.0,S,,HIGH,0.0909,1.69,YES,0.54,173.5
-race_6,6,Missy Bee,Missy Bee,J D Ramos,E N Foster,4,4,0.154,0.4638,-1.3331,30.0,30.0,S,,HIGH,0.0323,4.77,YES,3.62,300.0
-race_6,6,Union Mist,Union Mist,T Gaffalione,B P Walsh,5,5,0.1323,0.3912,-1.5299,6.0,6.0,S,No confirmed speed. Tactical pace likely. Stalkers favored.,HIGH,0.1429,0.93,,-0.206,0.0
-race_6,6,Ivory and Ebony,Ivory and Ebony,J Alvarado,D L Romans,6,6,0.0744,0.2536,-2.0516,3.5,3.5,nan,,HIGH,0.2222,0.33,,-0.74,0.0
-race_6,6,Clairita,Clairita,L Saez,P A Bauer,7,7,0.0712,0.2316,-2.118,0.8,0.8,U,,HIGH,0.5556,0.13,,-0.943,0.0
-race_7,7,Chapman's Peak,Chapman's Peak,"I Ortiz, Jr.",B H Cox,1,1,0.1904,0.5696,0.0924,1.8,1.8,S,,HIGH,0.3571,0.53,,-0.657,0.0
-race_7,7,Faber,Faber,"B J Hernandez, Jr.",M Stidham,2,2,0.1763,0.5362,0.0215,8.0,8.0,S,,HIGH,0.1111,1.59,YES,0.411,183.42
-race_7,7,Copper Missile,Copper Missile,L Machado,M P Sims,3,3,0.1539,0.4892,-0.1319,20.0,20.0,C,,HIGH,0.0476,3.23,YES,2.078,279.0
-race_7,7,Carcano,Carcano,L Saez,V H Oliver,4,4,0.1273,0.384,-0.4087,12.0,12.0,S,,HIGH,0.0769,1.65,YES,0.528,136.43
-race_7,7,Concord Green,Concord Green,J R Velazquez,C R McGaughey III,5,5,0.1085,0.3298,-0.5868,4.5,4.5,S,,HIGH,0.1818,0.6,,-0.512,0.0
-race_7,7,Coiled,Coiled,F Prat,A Delacour,6,6,0.0752,0.2582,-0.8845,3.5,3.5,C,,HIGH,0.2222,0.34,,-0.737,0.0
-race_7,7,Mutaawid,Mutaawid,J J Hernandez,M J Maker,7,7,0.0639,0.2112,-1.1153,10.0,10.0,C,,HIGH,0.0909,0.7,,-0.361,0.0
-race_7,7,Royal Majesty,Royal Majesty,J Alvarado,W I Mott,8,8,0.0348,0.0898,-2.05,10.0,10.0,nan,,HIGH,0.0909,0.38,,-0.652,0.0
-race_7,7,The Hidden Chamber,The Hidden Chamber,A Concepcion,K Danner,9,9,0.0348,0.0692,-2.2863,15.0,15.0,C,No confirmed speed. Tactical pace likely. Stalkers favored.,HIGH,0.0625,0.56,,-0.478,0.0
-race_7,7,Factor Analysis,Factor Analysis,B Curtis,E Kenneally,10,10,0.0348,0.0628,-2.4276,20.0,20.0,S,,HIGH,0.0476,0.73,,-0.304,0.0
-race_8,8,American Law,American Law,T Gaffalione,S E Shaffer,1,1,0.2018,0.5796,-0.0483,6.0,6.0,S,,HIGH,0.1429,1.41,YES,0.211,171.98
-race_8,8,Clooney,Clooney,"I Ortiz, Jr.",G D Foley,2,2,0.1869,0.543,-0.0897,2.0,2.0,C,,HIGH,0.3333,0.56,,-0.626,0.0
-race_8,8,Liar's Poker,Liar's Poker,A Concepcion,G Londono,3,3,0.159,0.4776,-0.315,10.0,10.0,E,,HIGH,0.0909,1.75,YES,0.59,187.27
-race_8,8,Trusty Rusty,Trusty Rusty,J J Hernandez,"R B Hess, Jr.",4,4,0.1488,0.4098,-0.4875,8.0,8.0,S,Moderate pace -2 speed types. Pressers and stalkers favored.,HIGH,0.1111,1.34,YES,0.19,106.02
-race_8,8,Evening News,Evening News,O Villarreal,H Andrade,5,5,0.0797,0.255,-1.055,20.0,20.0,P,,HIGH,0.0476,1.67,YES,0.594,84.17
-race_8,8,Carolo Rapido,Carolo Rapido,E Morales,J Blair,6,6,0.0797,0.2494,-1.0676,5.0,5.0,C,,HIGH,0.1667,0.48,,-0.602,0.0
-race_8,8,Awesome Ruta,Awesome Ruta,J L Ortiz,J Sharp,7,7,0.0703,0.2374,-1.1237,3.5,3.5,S,,HIGH,0.2222,0.32,,-0.754,0.0
-race_8,8,Goes the Clown,Goes the Clown,J R Leparoux,"R B Hess, Jr.",8,8,0.0369,0.127,-1.8388,15.0,15.0,nan,,HIGH,0.0625,0.59,,-0.446,0.0
-race_8,8,Time for Trouble,Time for Trouble,J A Torres,E N Foster,9,9,0.0369,0.1212,-1.8388,8.0,8.0,nan,,HIGH,0.1111,0.33,,-0.705,0.0
-race_9,9,Noises Off,Noises Off,W A Rodriguez,P H Lobo,1,1,0.1979,0.5568,0.1365,12.0,12.0,P,,HIGH,0.0769,2.57,YES,1.375,300.0
-race_9,9,Smokey Mandate,Smokey Mandate,J J Hernandez,M J Maker,2,2,0.1833,0.5414,0.0646,10.0,10.0,P,,HIGH,0.0909,2.02,YES,0.833,254.11
-race_9,9,Tonka Warrior,Tonka Warrior,"I Ortiz, Jr.",M Robertson,3,3,0.1559,0.4726,-0.1313,10.0,10.0,S,,HIGH,0.0909,1.72,YES,0.559,178.86
-race_9,9,Common Defense,Common Defense,J L Ortiz,K G McPeek,4,4,0.1128,0.3554,-0.5236,3.0,3.0,P,,HIGH,0.25,0.45,,-0.662,0.0
-race_9,9,Sand Pipes,Sand Pipes,S Marin,L Schultz,5,5,0.0925,0.2778,-0.7698,5.0,5.0,S,,HIGH,0.1667,0.55,,-0.538,0.0
-race_9,9,Tiztastic,Tiztastic,L Saez,S M Asmussen,6,6,0.08,0.2618,-0.8085,8.0,8.0,S,,HIGH,0.1111,0.72,,-0.36,0.0
-race_9,9,Event Detail,Event Detail,B Curtis,W Walden,7,7,0.0689,0.2372,-1.034,4.5,4.5,C,HOT PACE -3 speed types will duel. Closers strongly advantaged.,HIGH,0.1818,0.38,,-0.69,0.0
-race_9,9,Flying Mohawk,Flying Mohawk,T Gaffalione,D Beckman,8,8,0.0362,0.115,-1.6751,15.0,15.0,S,,HIGH,0.0625,0.58,,-0.457,0.0
-race_9,9,Anglophile,Anglophile,J Castellano,B A Lynch,9,9,0.0362,0.095,-1.9568,4.0,4.0,C,,HIGH,0.2,0.18,,-0.855,0.0
-race_9,9,Innately Good,Innately Good,J C Ferrer,N G Goodwin,10,10,0.0362,0.087,-2.0047,30.0,30.0,C,,HIGH,0.0323,1.12,YES,0.086,10.16
+race_1,1,Emirates Affair,Emirates Affair,"I Ortiz, Jr.","R B Hess, Jr.",1,1,0.2071,0.5966,-0.9728,0.6,0.6,P,HOT PACE -5 speed types will duel. Closers strongly advantaged.,HIGH,0.625,0.33,,-0.876,0.0
+race_1,1,Ask Amanda,Ask Amanda,W A Rodriguez,J Antonuik,2,2,0.2001,0.5876,-1.0303,20.0,20.0,S,,HIGH,0.0476,4.2,YES,3.003,300.0
+race_1,1,Sunset Harbour,Sunset Harbour,M Gutierrez,C A David,3,3,0.1645,0.5032,-1.2269,8.0,8.0,P,,HIGH,0.1111,1.48,YES,0.316,150.19
+race_1,1,Coastline Hottie,Coastline Hottie,L Machado,C W Axmaker,4,4,0.1515,0.4308,-1.4129,4.0,4.0,P,,HIGH,0.2,0.76,,-0.394,0.0
+race_1,1,So Far So Good,So Far So Good,W Antongeorgi III,A Decker,5,5,0.1223,0.3704,-1.5778,12.0,12.0,P,,HIGH,0.0769,1.59,YES,0.467,122.85
+race_1,1,Devil of Paradis,Devil of Paradis,C Roman,M Evans II,6,6,0.0804,0.2676,-2.0198,4.5,4.5,nan,,HIGH,0.1818,0.44,,-0.638,0.0
+race_1,1,Scoop,Scoop,A Calleja,M Salas,7,7,0.0741,0.2438,-2.0767,30.0,30.0,P,,HIGH,0.0323,2.3,YES,1.222,108.04
+race_2,2,Castle Pines,Castle Pines,A Fresu,D F O'Neill,1,1,0.1172,0.3316,-1.6874,6.0,6.0,C,,HIGH,0.1429,0.82,,-0.297,0.0
+race_2,2,Super Saiyajin,Super Saiyajin,G Corrales,S Donjuan,2,2,0.0803,0.2518,-2.0182,20.0,20.0,nan,,HIGH,0.0476,1.69,YES,0.605,85.66
+race_2,2,Blessed Flyer,Blessed Flyer,S Gonzalez,M Douaihy,3,3,0.0803,0.241,-2.0182,20.0,20.0,nan,,HIGH,0.0476,1.69,YES,0.605,85.66
+race_2,2,Sing for Mo Money,Sing for Mo Money,A Achard,J Ennis,4,4,0.0803,0.2446,-2.0182,12.0,12.0,nan,,HIGH,0.0769,1.04,,-0.037,0.0
+race_2,2,Paper Run,Paper Run,W A Rodriguez,W A Ward,5,5,0.0803,0.2482,-2.0182,8.0,8.0,nan,,HIGH,0.1111,0.72,,-0.358,0.0
+race_2,2,Trim Castle,Trim Castle,E Morales,J Ennis,6,6,0.0803,0.2414,-2.0182,15.0,15.0,nan,,HIGH,0.0625,1.28,YES,0.204,47.34
+race_2,2,Mr Gerson,Mr Gerson,A Calleja,I Acevedo,7,7,0.0803,0.235,-2.0182,20.0,20.0,nan,,HIGH,0.0476,1.69,YES,0.605,85.66
+race_2,2,Grandes Suenos,Grandes Suenos,L Saez,R Hernandez,8,8,0.0803,0.2442,-2.0182,10.0,10.0,nan,,HIGH,0.0909,0.88,,-0.197,0.0
+race_2,2,American Pope,American Pope,D Sheehy,P McEntee,9,9,0.0803,0.2464,-2.0182,30.0,30.0,nan,,HIGH,0.0323,2.49,YES,1.408,123.98
+race_2,2,Arctic Wolf,Arctic Wolf,T Gaffalione,P Antonacci,10,10,0.0803,0.2406,-2.0198,4.5,4.5,nan,,HIGH,0.1818,0.44,,-0.639,0.0
+race_2,2,Perfect Mo,Perfect Mo,F De La Cruz,E N Foster,11,11,0.0803,0.243,-2.0198,15.0,15.0,nan,,HIGH,0.0625,1.28,YES,0.204,47.34
+race_2,2,Ruiva,Ruiva,"I Ortiz, Jr.",W A Ward,12,12,0.0803,0.2322,-2.0198,1.6,1.6,nan,No confirmed speed. Tactical pace likely. Stalkers favored.,HIGH,0.3846,0.21,,-0.872,0.0
+race_3,3,Lucy McGee,Lucy McGee,L Saez,V H Oliver,1,1,0.1318,0.3552,-0.9362,4.0,4.0,P,,HIGH,0.2,0.66,,-0.473,0.0
+race_3,3,Llamp,Llamp,B Curtis,E Kenneally,2,2,0.1137,0.326,-1.0393,10.0,10.0,E,,HIGH,0.0909,1.25,YES,0.137,62.58
+race_3,3,Loriebeth,Loriebeth,M Gutierrez,A B Taylor,3,3,0.1054,0.3018,-1.1647,30.0,30.0,P,,HIGH,0.0323,3.27,YES,2.163,189.03
+race_3,3,Poverty With Aview,Poverty With Aview,J J Radosevich,J Lejzerowicz,4,4,0.1002,0.2868,-1.1992,12.0,12.0,P,,HIGH,0.0769,1.3,YES,0.203,63.1
+race_3,3,One Happy Island,One Happy Island,A Achard,M Kordenbrock,5,5,0.0921,0.262,-1.2775,15.0,15.0,S,,HIGH,0.0625,1.47,YES,0.381,78.88
+race_3,3,Aurora Sky,Aurora Sky,T Gaffalione,J Sharp,6,6,0.0686,0.2058,-1.5142,5.0,5.0,C,,HIGH,0.1667,0.41,,-0.657,0.0
+race_3,3,Red Beach,Red Beach,J Castellano,G D Sacco,7,7,0.04,0.1342,-2.0182,20.0,20.0,nan,,HIGH,0.0476,0.84,,-0.2,0.0
+race_3,3,Marcheline,Marcheline,J R Velazquez,V H Oliver,8,8,0.04,0.131,-2.0182,20.0,20.0,nan,,HIGH,0.0476,0.84,,-0.2,0.0
+race_3,3,Whiskey Serenade,Whiskey Serenade,M Garcia,J Butcher,9,9,0.04,0.1382,-2.0182,30.0,30.0,nan,,HIGH,0.0323,1.24,YES,0.2,20.03
+race_3,3,Avila,Avila,J N Hernandez,M Douaihy,10,10,0.04,0.1332,-2.0182,30.0,30.0,nan,,HIGH,0.0323,1.24,YES,0.2,20.03
+race_3,3,Headspin,Headspin,J Alvarado,W I Mott,11,11,0.04,0.1292,-2.0182,4.5,4.5,nan,,HIGH,0.1818,0.22,,-0.82,0.0
+race_3,3,Conquering Marin,Conquering Marin,"I Ortiz, Jr.",B P Walsh,12,12,0.04,0.1382,-2.0182,3.5,3.5,nan,,HIGH,0.2222,0.18,,-0.86,0.0
+race_3,3,Swirling Seas,Swirling Seas,L Machado,B Colebrook,13,13,0.04,0.1246,-2.0182,6.0,6.0,nan,,HIGH,0.1429,0.28,,-0.76,0.0
+race_3,3,Crescent Sky,Crescent Sky,C J Lanerie,A G Cohn,14,14,0.036,0.124,-2.1174,20.0,20.0,U,HOT PACE -5 speed types will duel. Closers strongly advantaged.,HIGH,0.0476,0.76,,-0.279,0.0
+race_3,3,Victor Valley,Victor Valley,A Calleja,I Acevedo,15,15,0.036,0.118,-2.1583,20.0,20.0,P,,HIGH,0.0476,0.76,,-0.279,0.0
+race_3,3,Gellhorn,Gellhorn,F Prat,D Gargan,16,16,0.036,0.0918,-2.3965,6.0,6.0,S,,HIGH,0.1429,0.25,,-0.784,0.0
+race_4,4,Mo Work,Mo Work,L Saez,G R Arnold II,1,1,0.2657,0.7326,0.2404,4.0,4.0,E,,HIGH,0.2,1.33,YES,0.063,205.33
+race_4,4,Fracture,Fracture,G Saez,D Leitch,2,2,0.2657,0.7212,0.2015,15.0,15.0,P,,HIGH,0.0625,4.25,YES,2.986,300.0
+race_4,4,Mo Hair Sam,Mo Hair Sam,F De La Cruz,J A Hancock,3,3,0.1409,0.4292,-0.5965,20.0,20.0,S,,HIGH,0.0476,2.96,YES,1.819,244.93
+race_4,4,White Whale,White Whale,A Concepcion,M A Tomlinson,4,4,0.1051,0.3438,-0.9013,6.0,6.0,P,HOT PACE -3 speed types will duel. Closers strongly advantaged.,HIGH,0.1429,0.74,,-0.369,0.0
+race_4,4,Shangrala Road,Shangrala Road,"I Ortiz, Jr.",B H Cox,5,5,0.0832,0.2886,-1.0653,1.2,1.2,S,,HIGH,0.4545,0.18,,-0.9,0.0
+race_4,4,Attersee,Attersee,T Gaffalione,N W Casse,6,6,0.0623,0.2252,-1.3574,8.0,8.0,S,,HIGH,0.1111,0.56,,-0.502,0.0
+race_4,4,Bite and Strike,Bite and Strike,J Alvarado,W I Mott,7,7,0.0385,0.151,-1.8001,5.0,5.0,nan,,HIGH,0.1667,0.23,,-0.807,0.0
+race_4,4,La Houligan,La Houligan,J L Ortiz,G Compton,8,8,0.0385,0.1084,-2.0182,10.0,10.0,nan,,HIGH,0.0909,0.42,,-0.615,0.0
+race_5,5,Judge Davis,Judge Davis,F Prat,M J Maker,1,1,0.2402,0.6984,0.0745,6.0,6.0,S,,HIGH,0.1429,1.68,YES,0.441,283.89
+race_5,5,Miranda Rights,Miranda Rights,V Cheminaud,M Nihei,2,2,0.2402,0.6754,-0.0155,15.0,15.0,P,,HIGH,0.0625,3.84,YES,2.603,300.0
+race_5,5,Legalize,Legalize,J L Ortiz,C DeVaux,3,3,0.1196,0.3526,-0.8993,6.0,6.0,P,,HIGH,0.1429,0.84,,-0.282,0.0
+race_5,5,California Burrito,California Burrito,L Saez,"T Drury, Jr.",4,4,0.1161,0.348,-0.9001,12.0,12.0,P,,HIGH,0.0769,1.51,YES,0.393,105.99
+race_5,5,Green Light,Green Light,L Machado,R Brisset,5,5,0.0848,0.2806,-1.1213,8.0,8.0,P,,HIGH,0.1111,0.76,,-0.321,0.0
+race_5,5,Maycocks Bay,Maycocks Bay,"B J Hernandez, Jr.",M Stidham,6,6,0.0426,0.1388,-1.7933,4.5,4.5,P,HOT PACE -5 speed types will duel. Closers strongly advantaged.,HIGH,0.1818,0.23,,-0.808,0.0
+race_5,5,In a Jam,In a Jam,E Morales,J G Cook,7,7,0.0414,0.1384,-1.8335,20.0,20.0,nan,,HIGH,0.0476,0.87,,-0.172,0.0
+race_5,5,Just a Touch,Just a Touch,"I Ortiz, Jr.",B H Cox,8,8,0.0384,0.1124,-2.05,1.6,1.6,nan,,HIGH,0.3846,0.1,,-0.939,0.0
+race_5,5,Big to Do,Big to Do,W Antongeorgi III,T S Wismer,9,9,0.0384,0.1304,-2.05,20.0,20.0,nan,,HIGH,0.0476,0.81,,-0.233,0.0
+race_5,5,Stars and Strides,Stars and Strides,J Alvarado,W I Mott,10,10,0.0384,0.125,-2.05,12.0,12.0,nan,,HIGH,0.0769,0.5,,-0.54,0.0
+race_6,6,Metfardeh,Metfardeh,F Prat,T A Pletcher,1,1,0.234,0.6532,-0.8179,4.5,4.5,S,,HIGH,0.1818,1.29,YES,0.053,159.32
+race_6,6,Quinn's Promise,Quinn's Promise,C J Lanerie,D L Romans,2,2,0.1801,0.5362,-1.1236,20.0,20.0,S,,HIGH,0.0476,3.78,YES,2.603,300.0
+race_6,6,Oraia,Oraia,"B J Hernandez, Jr.",W D Cowans,3,3,0.154,0.4746,-1.2793,10.0,10.0,S,,HIGH,0.0909,1.69,YES,0.54,173.5
+race_6,6,Missy Bee,Missy Bee,J D Ramos,E N Foster,4,4,0.154,0.4542,-1.3331,30.0,30.0,S,,HIGH,0.0323,4.77,YES,3.62,300.0
+race_6,6,Union Mist,Union Mist,T Gaffalione,B P Walsh,5,5,0.1323,0.3996,-1.5299,6.0,6.0,S,No confirmed speed. Tactical pace likely. Stalkers favored.,HIGH,0.1429,0.93,,-0.206,0.0
+race_6,6,Ivory and Ebony,Ivory and Ebony,J Alvarado,D L Romans,6,6,0.0744,0.2518,-2.0516,3.5,3.5,nan,,HIGH,0.2222,0.33,,-0.74,0.0
+race_6,6,Clairita,Clairita,L Saez,P A Bauer,7,7,0.0712,0.2304,-2.118,0.8,0.8,U,,HIGH,0.5556,0.13,,-0.943,0.0
+race_7,7,Chapman's Peak,Chapman's Peak,"I Ortiz, Jr.",B H Cox,1,1,0.1904,0.5634,0.0924,1.8,1.8,S,,HIGH,0.3571,0.53,,-0.657,0.0
+race_7,7,Faber,Faber,"B J Hernandez, Jr.",M Stidham,2,2,0.1763,0.5368,0.0215,8.0,8.0,S,,HIGH,0.1111,1.59,YES,0.411,183.42
+race_7,7,Copper Missile,Copper Missile,L Machado,M P Sims,3,3,0.1539,0.4766,-0.1319,20.0,20.0,C,,HIGH,0.0476,3.23,YES,2.078,279.0
+race_7,7,Carcano,Carcano,L Saez,V H Oliver,4,4,0.1273,0.3922,-0.4087,12.0,12.0,S,,HIGH,0.0769,1.65,YES,0.528,136.43
+race_7,7,Concord Green,Concord Green,J R Velazquez,C R McGaughey III,5,5,0.1085,0.341,-0.5868,4.5,4.5,S,,HIGH,0.1818,0.6,,-0.512,0.0
+race_7,7,Coiled,Coiled,F Prat,A Delacour,6,6,0.0752,0.2652,-0.8845,3.5,3.5,C,,HIGH,0.2222,0.34,,-0.737,0.0
+race_7,7,Mutaawid,Mutaawid,J J Hernandez,M J Maker,7,7,0.0639,0.212,-1.1153,10.0,10.0,C,,HIGH,0.0909,0.7,,-0.361,0.0
+race_7,7,Royal Majesty,Royal Majesty,J Alvarado,W I Mott,8,8,0.0348,0.0866,-2.05,10.0,10.0,nan,,HIGH,0.0909,0.38,,-0.652,0.0
+race_7,7,The Hidden Chamber,The Hidden Chamber,A Concepcion,K Danner,9,9,0.0348,0.0712,-2.2863,15.0,15.0,C,No confirmed speed. Tactical pace likely. Stalkers favored.,HIGH,0.0625,0.56,,-0.478,0.0
+race_7,7,Factor Analysis,Factor Analysis,B Curtis,E Kenneally,10,10,0.0348,0.055,-2.4276,20.0,20.0,S,,HIGH,0.0476,0.73,,-0.304,0.0
+race_8,8,American Law,American Law,T Gaffalione,S E Shaffer,1,1,0.2018,0.5748,-0.0483,6.0,6.0,S,,HIGH,0.1429,1.41,YES,0.211,171.98
+race_8,8,Clooney,Clooney,"I Ortiz, Jr.",G D Foley,2,2,0.1869,0.565,-0.0897,2.0,2.0,C,,HIGH,0.3333,0.56,,-0.626,0.0
+race_8,8,Liar's Poker,Liar's Poker,A Concepcion,G Londono,3,3,0.159,0.4624,-0.315,10.0,10.0,E,,HIGH,0.0909,1.75,YES,0.59,187.27
+race_8,8,Trusty Rusty,Trusty Rusty,J J Hernandez,"R B Hess, Jr.",4,4,0.1488,0.4114,-0.4875,8.0,8.0,S,Moderate pace -2 speed types. Pressers and stalkers favored.,HIGH,0.1111,1.34,YES,0.19,106.02
+race_8,8,Evening News,Evening News,O Villarreal,H Andrade,5,5,0.0797,0.2558,-1.055,20.0,20.0,P,,HIGH,0.0476,1.67,YES,0.594,84.17
+race_8,8,Carolo Rapido,Carolo Rapido,E Morales,J Blair,6,6,0.0797,0.2504,-1.0676,5.0,5.0,C,,HIGH,0.1667,0.48,,-0.602,0.0
+race_8,8,Awesome Ruta,Awesome Ruta,J L Ortiz,J Sharp,7,7,0.0703,0.236,-1.1237,3.5,3.5,S,,HIGH,0.2222,0.32,,-0.754,0.0
+race_8,8,Goes the Clown,Goes the Clown,J R Leparoux,"R B Hess, Jr.",8,8,0.0369,0.1162,-1.8388,15.0,15.0,nan,,HIGH,0.0625,0.59,,-0.446,0.0
+race_8,8,Time for Trouble,Time for Trouble,J A Torres,E N Foster,9,9,0.0369,0.128,-1.8388,8.0,8.0,nan,,HIGH,0.1111,0.33,,-0.705,0.0
+race_9,9,Noises Off,Noises Off,W A Rodriguez,P H Lobo,1,1,0.2252,0.65,0.1365,12.0,12.0,P,,HIGH,0.0769,2.93,YES,1.702,300.0
+race_9,9,Smokey Mandate,Smokey Mandate,J J Hernandez,M J Maker,2,2,0.211,0.6266,0.0646,5.0,5.0,P,,HIGH,0.1667,1.27,YES,0.055,133.14
+race_9,9,Tonka Warrior,Tonka Warrior,"I Ortiz, Jr.",M Robertson,3,3,0.1921,0.5646,-0.1313,10.0,10.0,S,,HIGH,0.0909,2.11,YES,0.921,278.25
+race_9,9,Sand Pipes,Sand Pipes,S Marin,L Schultz,4,4,0.1055,0.3252,-0.7698,4.5,4.5,S,,HIGH,0.1818,0.58,,-0.525,0.0
+race_9,9,Tiztastic,Tiztastic,L Saez,S M Asmussen,5,5,0.1055,0.3212,-0.8085,5.0,5.0,S,,HIGH,0.1667,0.63,,-0.473,0.0
+race_9,9,Event Detail,Event Detail,B Curtis,W Walden,6,6,0.0819,0.2666,-1.034,6.0,6.0,C,Moderate pace -2 speed types. Pressers and stalkers favored.,HIGH,0.1429,0.57,,-0.509,0.0
+race_9,9,Flying Mohawk,Flying Mohawk,T Gaffalione,D Beckman,7,7,0.0409,0.1428,-1.6751,6.0,6.0,S,,HIGH,0.1429,0.29,,-0.755,0.0
+race_9,9,Anglophile,Anglophile,J Castellano,B A Lynch,8,8,0.0379,0.103,-1.9568,2.5,2.5,C,,HIGH,0.2857,0.13,,-0.905,0.0
